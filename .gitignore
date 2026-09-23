@@ -1,2 +1,4 @@
 .ansible
 .odo
+.env
+db-data

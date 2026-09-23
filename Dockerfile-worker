@@ -1,0 +1,24 @@
+# syntax=docker/dockerfile:1
+
+# Build the application from source
+FROM golang:1.26 AS build-worker
+
+WORKDIR /app
+
+COPY ./backend ./backend
+COPY ./worker ./worker
+WORKDIR /app/worker
+RUN go mod download
+
+RUN CGO_ENABLED=0 GOOS=linux go build -o /worker
+
+# Deploy the application binary into a lean image
+FROM alpine AS build-release-stage
+
+RUN apk add --no-cache tzdata
+
+WORKDIR /
+
+COPY --from=build-worker /worker /worker
+
+ENTRYPOINT ["/worker"]
