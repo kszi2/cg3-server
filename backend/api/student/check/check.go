@@ -1,6 +1,7 @@
 package check
 
 import (
+	"crypto/md5"
 	"encoding/base64"
 	"errors"
 	"net/http"
@@ -14,6 +15,7 @@ import (
 	"github.com/kszi2/cg3-server/backend/db"
 	"github.com/kszi2/cg3-server/backend/queue"
 	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 )
 
 type CGRunCreateReturn struct {
@@ -73,11 +75,13 @@ func handleUpload(c *gin.Context) {
 	}
 
 	runID := uuid.New()
+	md5sum := md5.Sum(source)
 
 	run := db.CGRun{
 		GuestUpload: true,
 		Source:      source,
 		RunID:       &runID,
+		SourceMD5:   md5sum[:],
 	}
 
 	student := db.Student{}
@@ -92,11 +96,31 @@ func handleUpload(c *gin.Context) {
 	run.StudentID = &student.ID
 	run.Student = &student
 
+	var existingRun db.CGRun
+	err = db.DB.
+		Session(&gorm.Session{
+			Logger: logger.Default.LogMode(logger.Silent),
+		}).
+		Preload("Student").
+		Where(&db.CGRun{SourceMD5: run.SourceMD5}).
+		First(&existingRun).
+		Error
+	if err == nil {
+		sum := CGRunCreateReturn{
+			RunID:     existingRun.RunID,
+			CreatedAt: &existingRun.CreatedAt,
+			Student:   students.Student2Return(existingRun.Student),
+		}
+
+		c.JSON(http.StatusOK, &sum)
+		return
+	}
+
 	if err := db.DB.Create(&run).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
 		return
 	}
-	if err := queue.Send(strconv.FormatUint(uint64(run.ID), 10)); err != nil {
+	if err := queue.Send(strconv.FormatUint(uint64(run.ID), 10), 0); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to queue run"})
 		return
 	}

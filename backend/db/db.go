@@ -30,6 +30,7 @@ type CGRun struct {
 
 	GuestUpload bool   `gorm:"not null"`
 	Source      []byte `gorm:"not null"`
+	SourceMD5   []byte `gorm:"index"`
 
 	RunID *uuid.UUID `gorm:"unique;not null"`
 
