@@ -12,7 +12,7 @@ import (
 )
 
 func main() {
-	err := db.DbConnect()
+	err := db.DbConnect(true)
 	if err != nil {
 		log.Fatal(err)
 	}

@@ -1,0 +1,45 @@
+module github.com/kszi2/cg3-server/checker
+
+go 1.26.0
+
+replace github.com/kszi2/cg3-server/backend => ../backend
+
+require (
+	github.com/google/uuid v1.6.0
+	github.com/kszi2/cg3-server/backend v0.0.0-20260920125608-b3b1a4effcfa
+	github.com/moby/moby/api v1.56.0
+	github.com/moby/moby/client v0.6.0
+)
+
+require (
+	github.com/Microsoft/go-winio v0.6.2 // indirect
+	github.com/cespare/xxhash/v2 v2.3.0 // indirect
+	github.com/containerd/errdefs v1.0.0 // indirect
+	github.com/containerd/errdefs/pkg v0.3.0 // indirect
+	github.com/distribution/reference v0.6.0 // indirect
+	github.com/docker/go-connections v0.8.1 // indirect
+	github.com/docker/go-units v0.5.0 // indirect
+	github.com/felixge/httpsnoop v1.1.0 // indirect
+	github.com/go-logr/logr v1.4.4 // indirect
+	github.com/go-logr/stdr v1.2.2 // indirect
+	github.com/jackc/pgpassfile v1.0.0 // indirect
+	github.com/jackc/pgservicefile v0.0.0-20240606120523-5a60cdf6a761 // indirect
+	github.com/jackc/pgx/v5 v5.11.0 // indirect
+	github.com/jackc/puddle/v2 v2.2.2 // indirect
+	github.com/jinzhu/inflection v1.0.0 // indirect
+	github.com/jinzhu/now v1.1.5 // indirect
+	github.com/moby/docker-image-spec v1.3.1 // indirect
+	github.com/opencontainers/go-digest v1.0.0 // indirect
+	github.com/opencontainers/image-spec v1.1.1 // indirect
+	github.com/rabbitmq/amqp091-go v1.15.0 // indirect
+	go.opentelemetry.io/auto/sdk v1.2.1 // indirect
+	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.71.0 // indirect
+	go.opentelemetry.io/otel v1.46.0 // indirect
+	go.opentelemetry.io/otel/metric v1.46.0 // indirect
+	go.opentelemetry.io/otel/trace v1.46.0 // indirect
+	golang.org/x/sync v0.23.0 // indirect
+	golang.org/x/sys v0.48.0 // indirect
+	golang.org/x/text v0.42.0 // indirect
+	gorm.io/driver/postgres v1.6.3 // indirect
+	gorm.io/gorm v1.31.2 // indirect
+)

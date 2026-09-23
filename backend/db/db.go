@@ -64,7 +64,7 @@ type Student struct {
 	Runs []CGRun `gorm:"foreignKey:StudentID"`
 }
 
-func DbConnect() error {
+func DbConnect(migrate bool) error {
 	host := helper.EnvGet("DB_HOST", "localhost")
 	user := helper.EnvGet("DB_USER", "gorm")
 	pass := helper.EnvGet("DB_PASS", "gorm")
@@ -79,6 +79,10 @@ func DbConnect() error {
 	}
 
 	DB = db
+
+	if !migrate {
+		return err
+	}
 
 	models := []any{&User{}, &CGRun{}, &CheckResult{}, &Student{}}
 

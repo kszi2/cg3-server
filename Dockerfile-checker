@@ -1,0 +1,15 @@
+# syntax=docker/dockerfile:1
+FROM bodand/cg3
+
+RUN apt update -y && apt install -y libsdl2-dev libsdl2-gfx-dev libsdl2-image-dev \
+    libsdl2-mixer-dev libsdl2-net-dev libsdl2-ttf-dev \
+    libsdl3-dev libsdl3-image-dev libsdl3-ttf-dev gcc graphviz php librsvg2-bin \
+    unzip
+
+WORKDIR /cg3/tools/
+COPY ./checker/callgraph.php ./checker/debugmalloc.h .
+
+WORKDIR /cg3/
+COPY ./checker/cg.sh .
+
+ENTRYPOINT ["/cg3/cg.sh"]
