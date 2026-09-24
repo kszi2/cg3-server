@@ -83,6 +83,7 @@ func Register(router *gin.RouterGroup) {
 	router.DELETE("/:id", handleDelete)
 	router.GET("/:id", handleRun)
 	router.GET("/:id/status", handleRunStatus)
+	router.POST("/:id/recheck", handleRecheck)
 }
 
 func handleUpload(c *gin.Context) {
@@ -362,6 +363,40 @@ func handleRunStatus(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, &ret)
+}
+
+func handleRecheck(c *gin.Context) {
+	if ok, _ := common_api.ValidateJWT(c); !ok {
+		return
+	}
+
+	runID, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid run UUID"})
+		return
+	}
+
+	var run db.CGRun
+	query := db.DB.Where(&db.CGRun{RunID: &runID}).First(&run)
+	if errors.Is(query.Error, gorm.ErrRecordNotFound) {
+		c.JSON(http.StatusNotFound, gin.H{"error": "run not found"})
+		return
+	}
+	if query.Error != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
+		return
+	}
+
+	if err := db.DB.Model(&run).Update("check_time", nil).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
+		return
+	}
+	if err := queue.Send(strconv.FormatUint(uint64(run.ID), 10), 10); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to queue run"})
+		return
+	}
+
+	c.JSON(http.StatusAccepted, gin.H{"status": "queued"})
 }
 
 func handleDelete(c *gin.Context) {
