@@ -42,7 +42,7 @@ type CGRunReturn struct {
 func Register(router *gin.RouterGroup) {
 	router.POST("", handleUpload)
 	router.GET("/:id", handleRun)
-	router.GET(":id/status", handleRunStatus)
+	router.GET("/:id/status", handleRunStatus)
 }
 
 func handleUpload(c *gin.Context) {

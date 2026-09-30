@@ -80,6 +80,7 @@ func Register(router *gin.RouterGroup) {
 	router.POST("", handleUpload)
 	router.GET("/student/:id", handleStudentRuns)
 	router.GET("/all", handleAll)
+	router.GET("/my", handleMy)
 	router.DELETE("/:id", handleDelete)
 	router.GET("/:id", handleRun)
 	router.GET("/:id/status", handleRunStatus)
@@ -279,6 +280,31 @@ func handleAll(c *gin.Context) {
 		Preload("User", func(tx *gorm.DB) *gorm.DB {
 			return tx.Model(&db.User{})
 		}).
+		Find(&runs)
+	if query.Error != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
+		return
+	}
+
+	c.JSON(http.StatusOK, runs)
+}
+
+func handleMy(c *gin.Context) {
+	ok, claims := common_api.ValidateJWT(c)
+	if !ok {
+		return
+	}
+
+	var runs []CGRunReturnSum
+	query := db.DB.
+		Model(&db.CGRun{}).
+		Preload("Student", func(tx *gorm.DB) *gorm.DB {
+			return tx.Model(&db.Student{})
+		}).
+		Preload("User", func(tx *gorm.DB) *gorm.DB {
+			return tx.Model(&db.User{})
+		}).
+		Where(&db.CGRun{CreatedBy: &claims.UserID}).
 		Find(&runs)
 	if query.Error != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})

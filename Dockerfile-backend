@@ -1,13 +1,13 @@
 # syntax=docker/dockerfile:1
 
 # Build the frontend from source
-# FROM node:20 AS build-frontend
+FROM node:24 AS build-frontend
 
-# WORKDIR /frontend
-# COPY ./frontend/package*.json ./
-# RUN npm install
-# COPY ./frontend .
-# RUN npm run build
+WORKDIR /frontend
+COPY ./frontend/package*.json ./
+RUN npm install
+COPY ./frontend .
+RUN npm run build
 
 # Build the application from source
 FROM golang:1.26 AS build-backend
@@ -27,7 +27,7 @@ RUN apk add --no-cache tzdata
 WORKDIR /
 
 COPY --from=build-backend /backend /backend
-# COPY --from=build-frontend /frontend/dist /dist
+COPY --from=build-frontend /frontend/dist /dist
 
 ENV FRONTEND_DIR=./dist
 

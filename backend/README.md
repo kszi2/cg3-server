@@ -407,6 +407,14 @@ Response:
 
 The response has the same array shape as `GET /api/teacher/check/student/:id`.
 
+#### `GET /api/teacher/check/my`
+
+Return summary results for all runs associated with the current user. Authentication is required. Source archives and attachments are not returned.
+
+Response:
+
+The response has the same array shape as `GET /api/teacher/check/student/:id`.
+
 #### `GET /api/teacher/check/:id`
 
 Return a full run by public UUID. Authentication is required. The response includes source and result attachments as base64 strings.
