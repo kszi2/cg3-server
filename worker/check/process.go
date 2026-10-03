@@ -14,6 +14,7 @@ import (
 type checkResult struct {
 	out        string
 	err        string
+	run        bool
 	attach     []byte
 	attachType string
 }
@@ -113,6 +114,16 @@ func (check *CheckProcess) AddFile(reader io.Reader, name string) error {
 				res2.err += formatCG3Report(cg3Report)
 				check.results[fmt.Sprintf("cg3-%v", cg3Report.Check)] = res2
 			}
+
+			for _, cg3Check := range checks {
+				if !strings.HasPrefix(cg3Check, "cg3") || cg3Check == "cg3-complete" {
+					continue
+				}
+
+				res2 := check.results[cg3Check]
+				res2.run = true
+				check.results[cg3Check] = res2
+			}
 		}
 		check.results["cg3-complete"] = res
 
@@ -144,11 +155,8 @@ func (check *CheckProcess) GetResult() []db.CheckResult {
 			RunID:          check.runID,
 		}
 
-		if result.out == "" && result.err == "" {
+		if !result.run {
 			ret1.Result = 0
-			if strings.HasPrefix(checkname, "cg3") || checkname == "cg" {
-				ret1.Result = 1
-			}
 		} else if result.err == "" {
 			ret1.Result = 1
 			ret1.Notes = &result.out
@@ -188,6 +196,8 @@ func fillResult(fname string, reader io.Reader, result *checkResult) bool {
 	case "error":
 		result.err = readString(reader)
 		return true
+	case "run":
+		result.run = true
 	}
 
 	return false

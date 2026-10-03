@@ -17,6 +17,33 @@ import (
 	"github.com/moby/moby/client"
 )
 
+func CheckDockerClient(ctx context.Context) error {
+	cli, err := client.New(client.FromEnv)
+	if err != nil {
+		return err
+	}
+	defer cli.Close()
+
+	ctList, err := cli.ContainerList(ctx, client.ContainerListOptions{
+		All: true,
+	})
+	if err == nil {
+		for _, ct := range ctList.Items {
+			if len(ct.Names) < 1 {
+				continue
+			}
+			if time.Since(time.Unix(ct.Created, 0)) > time.Hour && ct.Labels["hu.kszi2.cg3.check.id"] != "" {
+				log.Printf("found old container: %v, removing", ct.Names[0])
+				cli.ContainerRemove(ctx, ct.ID, client.ContainerRemoveOptions{
+					Force: true,
+				})
+			}
+		}
+	}
+
+	return nil
+}
+
 func Run(ctx context.Context, id uint) error {
 	cli, err := client.New(client.FromEnv)
 	if err != nil {

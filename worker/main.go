@@ -28,6 +28,11 @@ func main() {
 		log.Fatal(err)
 	}
 
+	err = check.CheckDockerClient(context.Background())
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	for d := range msgs {
 		id := uint(0)
 		fmt.Sscanf(string(d.Body), "%d", &id)

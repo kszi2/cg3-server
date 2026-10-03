@@ -8,6 +8,7 @@ TOOLS_DIR=/cg3/tools
 check-0100-unzip() {
 	CHECK_DIR=$OUT_DIR/0100-unzip
 	mkdir -p $CHECK_DIR
+	touch "$CHECK_DIR/run"
 
 	unzip -o $SOURCE_FILE -d $WORKDIR > $CHECK_DIR/out 2> $CHECK_DIR/error
 
@@ -18,6 +19,7 @@ check-0100-unzip() {
 check-0110-sanity() {
 	CHECK_DIR=$OUT_DIR/0110-sanity
 	mkdir -p $CHECK_DIR
+	touch "$CHECK_DIR/run"
 
 	pdf_count=$(find "$WORKDIR" -type f -iname '*.pdf' | wc -l)
 	c_count=$(find "$WORKDIR" -type f -name '*.c' | wc -l)
@@ -41,6 +43,7 @@ check-0110-sanity() {
 check-0120-debugmalloc() {
 	CHECK_DIR=$OUT_DIR/0120-debugmalloc
 	mkdir -p $CHECK_DIR
+	touch "$CHECK_DIR/run"
 
 	: > "$CHECK_DIR/out"
 	: > "$CHECK_DIR/error"
@@ -71,6 +74,7 @@ check-0120-debugmalloc() {
 check-0121-debugmalloc-replace() {
 	CHECK_DIR=$OUT_DIR/0121-debugmalloc-replace
 	mkdir -p $CHECK_DIR
+	touch "$CHECK_DIR/run"
 
 	find "$WORKDIR" -type f -name "debugmalloc.h" -exec sh -c 'cp "$1"/debugmalloc.h "$2"' shell "$TOOLS_DIR" {} \;
 	echo "Replaced all debugmalloc.h in $WORKDIR with known-good one." > $CHECK_DIR/out
@@ -80,6 +84,7 @@ check-0121-debugmalloc-replace() {
 check-0200-compile() {
 	CHECK_DIR=$OUT_DIR/0200-compile
 	mkdir -p $CHECK_DIR
+	touch "$CHECK_DIR/run"
 
 	: > "$CHECK_DIR/out"
 	: > "$CHECK_DIR/error"
@@ -151,6 +156,7 @@ check-0200-compile() {
 check-0300-cg3() {
 	CHECK_DIR=$OUT_DIR/0300-cg3
 	mkdir -p $CHECK_DIR
+	touch "$CHECK_DIR/run"
 
 	find $WORKDIR -type d -printf '-O -I -O "%p" ' | xargs cg3 db clang-18 -R \
 	-O -I/usr/include/SDL2 -O -I/usr/include/SDL3 -O -I/usr/include/SDL3_image -O -I/usr/include/SDL3_ttf \
@@ -164,6 +170,7 @@ check-0400-cg() {
 	CHECK_DIR=$OUT_DIR/0400-cg
 	mkdir -p $CHECK_DIR
 	cd $CHECK_DIR || exit
+	touch "$CHECK_DIR/run"
 
 	find $WORKDIR -name "debugmalloc.h" -exec sh -c 'echo '' > "$1"' shell {} \;
 
@@ -176,13 +183,28 @@ check-0400-cg() {
 	fi
 }
 
+run-check() {
+	check_function=$1
+	check_directory=$2
+	shift 2
+
+	mkdir -p "$OUT_DIR/$check_directory"
+	for dependency in "$@"; do
+		if [ -s "$OUT_DIR/$dependency/error" ]; then
+			return 0
+		fi
+	done
+
+	"$check_function"
+}
+
 mkdir -p $WORKDIR
 mkdir -p $OUT_DIR
 
-check-0100-unzip
-check-0110-sanity
-check-0120-debugmalloc
-check-0121-debugmalloc-replace
-check-0200-compile
-check-0300-cg3
-check-0400-cg
+run-check check-0100-unzip 0100-unzip
+run-check check-0110-sanity 0110-sanity 0100-unzip
+run-check check-0120-debugmalloc 0120-debugmalloc 0110-sanity
+run-check check-0121-debugmalloc-replace 0121-debugmalloc-replace 0110-sanity
+run-check check-0200-compile 0200-compile 0110-sanity
+run-check check-0300-cg3 0300-cg3 0110-sanity
+run-check check-0400-cg 0400-cg 0110-sanity

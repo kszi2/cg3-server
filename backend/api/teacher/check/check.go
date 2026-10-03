@@ -152,6 +152,14 @@ func handleUpload(c *gin.Context) {
 		First(&existingRun).
 		Error
 	if err == nil {
+		if existingRun.CreatedBy == nil {
+			existingRun.CreatedBy = &claims.UserID
+			if err := db.DB.Save(&existingRun).Error; err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
+				return
+			}
+		}
+
 		sum := CGRunReturnSum{
 			GuestUpload: existingRun.GuestUpload,
 			RunID:       existingRun.RunID,

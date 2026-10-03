@@ -106,6 +106,21 @@ func handleUpload(c *gin.Context) {
 		First(&existingRun).
 		Error
 	if err == nil {
+		if existingRun.StudentID != nil && *existingRun.StudentID != student.ID {
+			c.JSON(http.StatusConflict, gin.H{"error": "checks already uploaded for different student"})
+			return
+		}
+
+		if existingRun.StudentID == nil {
+			existingRun.StudentID = &student.ID
+			existingRun.Student = &student
+
+			if err := db.DB.Save(&existingRun).Error; err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
+				return
+			}
+		}
+
 		sum := CGRunCreateReturn{
 			RunID:     existingRun.RunID,
 			CreatedAt: &existingRun.CreatedAt,
