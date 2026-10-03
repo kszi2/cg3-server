@@ -3,6 +3,7 @@ package queue
 import (
 	"context"
 	"fmt"
+	"net/url"
 	"sync"
 	"time"
 
@@ -146,7 +147,12 @@ func reconnect() error {
 	port := helper.EnvGet("RABBITMQ_PORT", "5672")
 	queueName := helper.EnvGet("RABBITMQ_QUEUE", "check")
 
-	connection, err := amqp.Dial(fmt.Sprintf("amqp://%v:%v@%v:%v/", user, pass, host, port))
+	brokerURL := url.URL{
+		Scheme: "amqp",
+		User:   url.UserPassword(user, pass),
+		Host:   fmt.Sprintf("%s:%s", host, port),
+	}
+	connection, err := amqp.Dial(brokerURL.String())
 	if err != nil {
 		return err
 	}
