@@ -2,14 +2,14 @@ import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { fetchWithAuth } from '../api';
 import { useAuth } from '../AuthContext';
-import { shortValue } from '../hash';
+import { shortValue, studentLabel } from '../hash';
 
 export type RunSummary = {
 	uuid: string;
 	createdAt: string;
 	checkedAt: string | null;
 	user: { username: string; displayname: string } | null;
-	student: { neptunHash: string } | null;
+	student: { neptunHash: string; initials: string } | null;
 };
 
 type CheckListProps = { title: string; endpoint: string; emptyText: string };
@@ -88,7 +88,7 @@ export default function CheckList({ title, endpoint, emptyText }: CheckListProps
 													onClick={(event) => event.stopPropagation()}
 													className="text-blue-600 hover:text-blue-800"
 												>
-													{shortValue(run.student.neptunHash)}
+													{studentLabel(run.student.initials, run.student.neptunHash)}
 												</Link>
 											) : (
 												'Unassigned'

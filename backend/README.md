@@ -40,6 +40,8 @@ Invalid or missing authorization headers return `400` with an error object. Auth
 
 - `id`: database ID
 - `neptunHash`: student identifier
+- `initials`: student initials
+- `notes`: admin-maintained notes
 - `createdAt`, `updatedAt`, `deletedAt`: GORM timestamps
 
 ### CGRun
@@ -96,8 +98,10 @@ Password hashes are never included in user response objects.
 | ------------ | ------ | ---- | ------------------------------------------------------------------------------------- |
 | `id`         | number | No   | Database ID. This is returned by student-management and student-submission endpoints. |
 | `neptunHash` | string | No   | Student's Neptun hash.                                                                |
+| `initials`   | string | No   | Student initials.                                                                     |
+| `notes`      | string | No   | Admin-maintained notes. Returned by student-management endpoints.                     |
 
-Teacher run summaries contain a student object with only `neptunHash`; the `id` field is not serialized there. The student object itself can be `null` for a teacher run uploaded without `neptunHash`.
+Regular `StudentReturn` objects contain `id`, `neptunHash`, and `initials`. Admin student-management responses use `StudentAdminReturn` and additionally contain `notes`. The student object itself can be `null` for a teacher run uploaded without `neptunHash`.
 
 #### Run summary objects
 
@@ -277,10 +281,20 @@ Create students in a batch. Admin authentication is required.
 Request:
 
 ```json
-[{ "neptunHash": "ABC123" }, { "neptunHash": "DEF456" }]
+[
+	{ "neptunHash": "ABC123", "initials": "AB", "notes": "first-year" },
+	{ "neptunHash": "DEF456", "initials": "CD", "notes": "scholarship" }
+]
 ```
 
-The request must contain at least one student. Empty hashes, duplicate hashes within the request, and hashes already present in the database are rejected. Duplicate conflicts return `409`.
+The request must contain at least one student. `initials` and `notes` are optional and are stored on the student record.
+
+Entries are processed independently. A new hash creates a student. When a hash already exists:
+
+- If the submitted initials match the existing initials, the submitted non-empty notes are appended to the existing notes with `, ` between entries.
+- If the submitted initials differ, the existing record is not changed, but it is included in the response.
+
+This means a request can create new students while also returning existing duplicate records. Duplicate entries within the same request follow the same rules.
 
 Response:
 
@@ -288,11 +302,15 @@ Response:
 [
 	{
 		"id": 1,
-		"neptunHash": "ABC123"
+		"neptunHash": "ABC123",
+		"initials": "AB",
+		"notes": "first-year"
 	},
 	{
 		"id": 2,
-		"neptunHash": "DEF456"
+		"neptunHash": "DEF456",
+		"initials": "CD",
+		"notes": "scholarship"
 	}
 ]
 ```
@@ -307,9 +325,35 @@ Response:
 [
 	{
 		"id": 1,
-		"neptunHash": "ABC123"
+		"neptunHash": "ABC123",
+		"initials": "AB",
+		"notes": "first-year"
 	}
 ]
+```
+
+#### `PATCH /api/teacher/students/:id`
+
+Update a student's initials and notes by numeric database ID. Admin authentication is required. Only fields present in the JSON request are updated; an explicitly supplied empty string clears that field.
+
+Request:
+
+```json
+{
+	"initials": "AB",
+	"notes": "updated note"
+}
+```
+
+Response:
+
+```json
+{
+	"id": 1,
+	"neptunHash": "ABC123",
+	"initials": "AB",
+	"notes": "updated note"
+}
 ```
 
 #### `DELETE /api/teacher/students/:id`
@@ -366,7 +410,9 @@ Response:
 		"admin": false
 	},
 	"student": {
-		"neptunHash": "ABC123"
+		"id": 1,
+		"neptunHash": "ABC123",
+		"initials": "AB"
 	},
 	"checkedAt": null
 }
@@ -392,7 +438,9 @@ Response:
 			"admin": false
 		},
 		"student": {
-			"neptunHash": "ABC123"
+			"id": 1,
+			"neptunHash": "ABC123",
+			"initials": "AB"
 		},
 		"checkedAt": "2026-09-24T10:02:00Z"
 	}
@@ -434,7 +482,9 @@ Response:
 		"admin": false
 	},
 	"student": {
-		"neptunHash": "ABC123"
+		"id": 1,
+		"neptunHash": "ABC123",
+		"initials": "AB"
 	},
 	"checkedAt": "2026-09-24T10:02:00Z",
 	"source": "<base64-encoded ZIP>",
@@ -521,7 +571,8 @@ Response:
 	"createdAt": "2026-09-24T10:00:00Z",
 	"student": {
 		"id": 1,
-		"neptunHash": "ABC123"
+		"neptunHash": "ABC123",
+		"initials": "AB"
 	}
 }
 ```
@@ -537,7 +588,8 @@ Response:
 	"createdAt": "2026-09-24T10:00:00Z",
 	"student": {
 		"id": 1,
-		"neptunHash": "ABC123"
+		"neptunHash": "ABC123",
+		"initials": "AB"
 	},
 	"checkedAt": "2026-09-24T10:02:00Z",
 	"checkResults": [

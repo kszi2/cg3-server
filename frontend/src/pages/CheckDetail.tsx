@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { fetchWithAuth } from '../api';
 import { useAuth } from '../AuthContext';
-import { shortValue } from '../hash';
+import { shortValue, studentLabel } from '../hash';
 import { checkDefinitions } from '../checkData';
 import type { CheckDefinition } from '../checkData';
 
@@ -24,7 +24,7 @@ type Run = {
 	createdAt: string;
 	checkedAt: string | null;
 	user: { username: string; displayname: string } | null;
-	student: { neptunHash: string } | null;
+	student: { neptunHash: string; initials: string } | null;
 	source?: string | null;
 	checkResults: CheckResult[];
 };
@@ -226,10 +226,10 @@ export default function CheckDetail() {
 						{run?.student ? (
 							user ? (
 								<Link to={`/check/search/${encodeURIComponent(run.student.neptunHash)}`} className="text-blue-600 hover:text-blue-800">
-									{shortValue(run.student.neptunHash)}
+									{studentLabel(run.student.initials, run.student.neptunHash)}
 								</Link>
 							) : (
-								shortValue(run.student.neptunHash)
+								studentLabel(run.student.initials, run.student.neptunHash)
 							)
 						) : (
 							'Unassigned'

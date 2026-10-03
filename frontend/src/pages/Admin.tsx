@@ -1,21 +1,52 @@
 import { useEffect, useState } from 'react';
+import Papa from 'papaparse';
 import { useAuth } from '../AuthContext';
 import { fetchWithAuth } from '../api';
 import type { User as UserType } from '../AuthContext';
-import { isNeptunCode, sha1, shortValue } from '../hash';
+import { getHungarianInitials, isNeptunCode, sha1, studentLabel } from '../hash';
+import { Link } from 'react-router-dom';
 
-type StudentRecord = { id: number; neptunHash: string };
+type StudentRecord = { id: number; neptunHash: string; initials: string; notes: string };
 type CardStatus = { type: 'error' | 'success'; text: string } | null;
 
 const emptyCreateForm = { username: '', password: '', displayname: '', admin: false };
+const studentPageSize = 25;
+
+type CsvStudent = { name: string; neptun: string; notes: string };
+
+function parseStudentCsv(csv: string) {
+	const parsed = Papa.parse<Record<string, string>>(csv, {
+		header: true,
+		skipEmptyLines: 'greedy',
+		transformHeader: (header) => header.trim().toLocaleLowerCase('en-US'),
+		transform: (value) => value.trim()
+	});
+	if (parsed.errors.length) {
+		throw new Error(`Could not parse CSV: ${parsed.errors[0].message}`);
+	}
+	if (!parsed.meta.fields?.includes('name') || !parsed.meta.fields.includes('neptun') || !parsed.meta.fields.includes('notes')) {
+		throw new Error('CSV must contain name, neptun, and notes headers.');
+	}
+
+	return parsed.data.map((values, index): CsvStudent => {
+		const name = values.name || '';
+		const neptun = values.neptun || '';
+		if (!name || !neptun) throw new Error(`CSV row ${index + 2} must contain name and neptun.`);
+		return { name, neptun, notes: values.notes || '' };
+	});
+}
 
 export default function Admin() {
 	const { user } = useAuth();
 	const [allUsers, setAllUsers] = useState<UserType[]>([]);
 	const [students, setStudents] = useState<StudentRecord[]>([]);
 	const [userForm, setUserForm] = useState(emptyCreateForm);
-	const [studentInput, setStudentInput] = useState('');
+	const [studentFile, setStudentFile] = useState<File | null>(null);
+	const [studentSearch, setStudentSearch] = useState('');
+	const [studentSearchHashes, setStudentSearchHashes] = useState<string[]>([]);
+	const [studentPage, setStudentPage] = useState(1);
 	const [userEdits, setUserEdits] = useState<Record<number, { displayname: string; password: string }>>({});
+	const [studentEdits, setStudentEdits] = useState<Record<number, { initials: string; notes: string }>>({});
 	const [createUserStatus, setCreateUserStatus] = useState<CardStatus>(null);
 	const [userTableStatus, setUserTableStatus] = useState<CardStatus>(null);
 	const [studentStatus, setStudentStatus] = useState<CardStatus>(null);
@@ -65,7 +96,52 @@ export default function Admin() {
 		});
 	}, [allUsers]);
 
+	useEffect(() => {
+		setStudentEdits((previous) => {
+			const next = { ...previous };
+			for (const student of students) {
+				const current = next[student.id] ?? { initials: student.initials, notes: student.notes };
+				next[student.id] = { initials: current.initials, notes: current.notes };
+			}
+			return next;
+		});
+	}, [students]);
+
+	useEffect(() => {
+		setStudentPage(1);
+	}, [studentSearch]);
+
+	useEffect(() => {
+		let cancelled = false;
+		const searchText = studentSearch.trim();
+		if (!searchText) {
+			setStudentSearchHashes([]);
+			return () => {
+				cancelled = true;
+			};
+		}
+
+		void Promise.all([sha1(searchText), sha1(searchText.toUpperCase())]).then((hashes) => {
+			if (!cancelled) setStudentSearchHashes([...new Set(hashes)]);
+		});
+		return () => {
+			cancelled = true;
+		};
+	}, [studentSearch]);
+
 	if (!user?.admin) return <div className="text-center py-12 text-red-700">Administrator access is required.</div>;
+
+	const normalizedStudentSearch = studentSearch.trim().toLocaleLowerCase();
+	const filteredStudents = students.filter((student) => {
+		const edit = studentEdits[student.id] ?? { initials: student.initials, notes: student.notes };
+		return (
+			studentSearchHashes.includes(student.neptunHash) ||
+			[student.id.toString(), student.neptunHash, edit.initials, edit.notes].some((value) => value.toLocaleLowerCase().includes(normalizedStudentSearch))
+		);
+	});
+	const studentPageCount = Math.max(1, Math.ceil(filteredStudents.length / studentPageSize));
+	const currentStudentPage = Math.min(studentPage, studentPageCount);
+	const visibleStudents = filteredStudents.slice((currentStudentPage - 1) * studentPageSize, currentStudentPage * studentPageSize);
 
 	const handleCreateUser = async (event: React.FormEvent) => {
 		event.preventDefault();
@@ -124,24 +200,26 @@ export default function Admin() {
 
 	const handleCreateStudent = async (event: React.FormEvent) => {
 		event.preventDefault();
-		const codes = studentInput
-			.split(',')
-			.map((value) => value.trim())
-			.filter(Boolean);
-		if (!codes.length) {
-			showTemporaryStatus(setStudentStatus, { type: 'error', text: 'Enter at least one Neptun code.' });
-			return;
-		}
-		if (codes.some((code) => !isNeptunCode(code))) {
-			showTemporaryStatus(setStudentStatus, { type: 'error', text: 'Every Neptun code must be exactly 6 characters.' });
+		if (!studentFile) {
+			showTemporaryStatus(setStudentStatus, { type: 'error', text: 'Select a CSV file first.' });
 			return;
 		}
 		try {
-			const hashes = await Promise.all(codes.map((code) => sha1(code)));
+			const rows = parseStudentCsv(await studentFile.text());
+			if (!rows.length) throw new Error('The CSV does not contain any student rows.');
+			const invalidCode = rows.find((row) => !isNeptunCode(row.neptun));
+			if (invalidCode) throw new Error(`Neptun code must be exactly 6 characters: ${invalidCode.neptun}`);
+			const payload = await Promise.all(
+				rows.map(async (row) => ({
+					neptunHash: await sha1(row.neptun),
+					initials: getHungarianInitials(row.name),
+					notes: row.notes
+				}))
+			);
 			const response = await fetchWithAuth('/api/teacher/students', {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify(hashes.map((neptunHash) => ({ neptunHash })))
+				body: JSON.stringify(payload)
 			});
 			const data = await response.json();
 			if (!response.ok) {
@@ -149,11 +227,38 @@ export default function Admin() {
 				return;
 			}
 			showTemporaryStatus(setStudentStatus, { type: 'success', text: `${data.length} student(s) created.` });
-			setStudentInput('');
+			setStudentFile(null);
+			const input = document.getElementById('student-csv') as HTMLInputElement | null;
+			if (input) input.value = '';
 			await loadStudents();
 		} catch (error) {
 			console.error(error);
-			showTemporaryStatus(setStudentStatus, { type: 'error', text: 'Network error while creating students.' });
+			showTemporaryStatus(setStudentStatus, { type: 'error', text: error instanceof Error ? error.message : 'Could not import students.' });
+		}
+	};
+
+	const handleStudentUpdate = async (student: StudentRecord) => {
+		const edit = studentEdits[student.id] ?? { initials: student.initials, notes: student.notes };
+		const changes: Record<string, string> = {};
+		if (edit.initials !== student.initials) changes.initials = edit.initials;
+		if (edit.notes !== student.notes) changes.notes = edit.notes;
+		if (!Object.keys(changes).length) {
+			showTemporaryStatus(setStudentStatus, { type: 'error', text: 'No student changes to save.' });
+			return;
+		}
+		try {
+			const response = await fetchWithAuth(`/api/teacher/students/${student.id}`, {
+				method: 'PATCH',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify(changes)
+			});
+			const data = await response.json();
+			if (!response.ok) throw new Error(data?.error || 'Could not update student.');
+			showTemporaryStatus(setStudentStatus, { type: 'success', text: `Updated ${studentLabel(data.initials, data.neptunHash)}.` });
+			await loadStudents();
+		} catch (error) {
+			console.error(error);
+			showTemporaryStatus(setStudentStatus, { type: 'error', text: error instanceof Error ? error.message : 'Could not update student.' });
 		}
 	};
 
@@ -297,51 +402,121 @@ export default function Admin() {
 				<h2 className="text-2xl font-bold mb-6">Students</h2>
 				<form onSubmit={handleCreateStudent} className="mb-6 flex gap-3 flex-col md:flex-row">
 					<input
-						type="text"
-						value={studentInput}
-						onChange={(event) => setStudentInput(event.target.value)}
-						placeholder="ABC123, DEF456"
+						id="student-csv"
+						type="file"
+						accept=".csv,text/csv"
+						required
+						onChange={(event) => setStudentFile(event.target.files?.[0] || null)}
 						className="flex-1 px-3 py-2 border border-gray-300 rounded-md"
 					/>
 					<button type="submit" className="px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700">
-						Add students
+						Import CSV
 					</button>
 				</form>
+				<div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+					<input
+						type="search"
+						value={studentSearch}
+						onChange={(event) => setStudentSearch(event.target.value)}
+						placeholder="Search students"
+						className="w-full sm:max-w-sm px-3 py-2 border border-gray-300 rounded-md"
+					/>
+					<span className="text-sm text-gray-500">{filteredStudents.length} student(s)</span>
+				</div>
 				<div className="overflow-x-auto">
 					<table className="min-w-full divide-y divide-gray-200">
 						<thead className="bg-gray-50">
 							<tr>
-								<th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
-								<th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Neptun code</th>
+								<th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Student</th>
+								<th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Initials</th>
+								<th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Notes</th>
 								<th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Action</th>
 							</tr>
 						</thead>
 						<tbody className="divide-y divide-gray-200">
-							{students.length === 0 ? (
+							{filteredStudents.length === 0 ? (
 								<tr>
-									<td colSpan={3} className="px-4 py-6 text-gray-500 text-center">
-										No students yet.
+									<td colSpan={4} className="px-4 py-6 text-gray-500 text-center">
+										{students.length === 0 ? 'No students yet.' : 'No students match the search.'}
 									</td>
 								</tr>
 							) : (
-								students.map((student) => (
-									<tr key={student.id}>
-										<td className="px-4 py-3">{student.id}</td>
-										<td className="px-4 py-3">{shortValue(student.neptunHash)}</td>
-										<td className="px-4 py-3">
-											<button
-												type="button"
-												onClick={() => void handleDeleteStudent(student.id)}
-												className="px-3 py-1 rounded bg-red-600 text-white hover:bg-red-700"
-											>
-												Delete
-											</button>
-										</td>
-									</tr>
-								))
+								visibleStudents.map((student) => {
+									const edit = studentEdits[student.id] ?? { initials: student.initials, notes: student.notes };
+									return (
+										<tr key={student.id}>
+											<td className="px-4 py-3">
+												<Link
+													to={`/check/search/${encodeURIComponent(student.neptunHash)}`}
+													className="text-blue-600 hover:text-blue-800"
+												>
+													{studentLabel(edit.initials, student.neptunHash)}
+												</Link>
+											</td>
+											<td className="px-4 py-3">
+												<input
+													value={edit.initials}
+													onChange={(event) =>
+														setStudentEdits((previous) => ({
+															...previous,
+															[student.id]: { ...edit, initials: event.target.value }
+														}))
+													}
+													className="mt-1 w-full px-2 py-1 border border-gray-300 rounded-md"
+												/>
+											</td>
+											<td className="px-4 py-3">
+												<input
+													value={edit.notes}
+													onChange={(event) =>
+														setStudentEdits((previous) => ({ ...previous, [student.id]: { ...edit, notes: event.target.value } }))
+													}
+													className="w-full px-2 py-1 border border-gray-300 rounded-md"
+												/>
+											</td>
+											<td className="px-4 py-3">
+												<button
+													type="button"
+													onClick={() => void handleStudentUpdate(student)}
+													className="mr-2 px-3 py-1 rounded bg-blue-600 text-white hover:bg-blue-700"
+												>
+													Save
+												</button>
+												<button
+													type="button"
+													onClick={() => void handleDeleteStudent(student.id)}
+													className="px-3 py-1 rounded bg-red-600 text-white hover:bg-red-700"
+												>
+													Delete
+												</button>
+											</td>
+										</tr>
+									);
+								})
 							)}
 						</tbody>
 					</table>
+				</div>
+				<div className="mt-4 flex items-center justify-between gap-4 text-sm">
+					<button
+						type="button"
+						disabled={studentPage === 1}
+						onClick={() => setStudentPage((page) => Math.max(1, page - 1))}
+						className="px-3 py-1 rounded border border-gray-300 disabled:opacity-50"
+					>
+						Previous
+					</button>
+					<span>
+						Page {currentStudentPage} of {studentPageCount}
+					</span>
+					<button
+						type="button"
+						disabled={currentStudentPage >= studentPageCount}
+						onClick={() => setStudentPage((page) => Math.min(studentPageCount, page + 1))}
+						className="px-3 py-1 rounded border border-gray-300 disabled:opacity-50"
+					>
+						Next
+					</button>
 				</div>
 			</div>
 		</div>

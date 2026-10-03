@@ -60,6 +60,8 @@ type Student struct {
 	gorm.Model
 
 	NeptunHash string `gorm:"not null"`
+	Initials   string
+	Notes      string
 
 	Runs []CGRun `gorm:"foreignKey:StudentID"`
 }

@@ -11,3 +11,26 @@ export function isNeptunCode(value: string) {
 export function shortValue(value: string | null | undefined) {
 	return value ? value.slice(0, 6) : value;
 }
+
+export function studentLabel(initials: string | null | undefined, neptunHash: string) {
+	return `${initials || '-'} (${shortValue(neptunHash)})`;
+}
+
+export function getHungarianInitials(name: string) {
+	const multigraphs = ['dzs', 'cs', 'dz', 'gy', 'ly', 'ny', 'sz', 'ty', 'zs'];
+	const titleCase = (value: string) => {
+		const lowercase = value.toLocaleLowerCase('hu-HU');
+		return lowercase.slice(0, 1).toLocaleUpperCase('hu-HU') + lowercase.slice(1);
+	};
+
+	return name
+		.trim()
+		.split(/[\s-]+/)
+		.filter(Boolean)
+		.map((part) => {
+			const lowerPart = part.toLocaleLowerCase('hu-HU');
+			const multigraph = multigraphs.find((value) => lowerPart.startsWith(value));
+			return titleCase(multigraph ? lowerPart.slice(0, multigraph.length) : lowerPart.slice(0, 1));
+		})
+		.join('');
+}
