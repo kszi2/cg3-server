@@ -192,3 +192,20 @@ The backend runs database migrations at startup. The worker connects to the same
 The backend API is documented in [backend/README.md](backend/README.md). It includes authentication, teacher and student endpoints, request and response formats, result-field nullability, ZIP validation, and error responses.
 
 The worker and checker runtime behavior is documented in [worker/README.md](worker/README.md).
+
+## Creating first user
+
+To create the first (admin) user in the system, you must exec into the Postgres container, and create the user manually:
+
+```bash
+docker exec -it cg3-server-postgres-1 sh
+psql cg3 cg3user
+```
+
+Then run the following SQL query to create the first user:
+
+```sql
+INSERT INTO users (created_at, updated_at, username, display_name, admin, password) VALUES (now(), now(), 'admin', 'Admin', true, '$argon2id$v=19$m=2097152,t=1,p=4$4lkaMzpf89/fMLzyUJhFiQ$RMryqfxoPVWspM/p0Tb1r/SwcYN0R9k6A7GVyjauy+Y');
+```
+
+The password will be `Almafa12`. Change this on first login.
