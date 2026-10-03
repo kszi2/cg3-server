@@ -31,7 +31,7 @@ type CheckProcess struct {
 	runID   uint
 }
 
-var checks = []string{"unzip", "sanity", "debugmalloc", "compile", "cg3-complete", "cg3-arityck", "cg3-bugmalloc", "cg3-chonktion", "cg3-fio", "cg3-fleak", "cg3-globus", "cg3-hunktion", "cg3-t", "cg"}
+var checks = []string{"unzip", "sanity", "debugmalloc", "compile", "cg3-complete", "cg3-arityck", "cg3-bugmalloc", "cg3-chonktion", "cg3-fio", "cg3-fleak", "cg3-globus", "cg3-hunction", "cg3-t", "cg"}
 
 func New(runID uint) *CheckProcess {
 	res := make(map[string]checkResult)

@@ -3,6 +3,8 @@ import { Link, useParams } from 'react-router-dom';
 import { fetchWithAuth } from '../api';
 import { useAuth } from '../AuthContext';
 import { shortValue } from '../hash';
+import { checkDefinitions } from '../checkData';
+import type { CheckDefinition } from '../checkData';
 
 type CheckStatus = {
 	status: 'pending' | 'done';
@@ -23,6 +25,7 @@ type Run = {
 	checkedAt: string | null;
 	user: { username: string; displayname: string } | null;
 	student: { neptunHash: string } | null;
+	source?: string | null;
 	checkResults: CheckResult[];
 };
 
@@ -36,6 +39,18 @@ function getResultLabel(result: number) {
 function getResultClass(result: number) {
 	if (result === 0) return 'bg-gray-100 text-gray-700';
 	return result > 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700';
+}
+
+function downloadBase64(base64: string, filename: string, contentType: string) {
+	const binary = atob(base64);
+	const bytes = Uint8Array.from(binary, (character) => character.charCodeAt(0));
+	const blob = new Blob([bytes], { type: contentType });
+	const url = URL.createObjectURL(blob);
+	const link = document.createElement('a');
+	link.href = url;
+	link.download = filename;
+	link.click();
+	URL.revokeObjectURL(url);
 }
 
 export default function CheckDetail() {
@@ -113,7 +128,7 @@ export default function CheckDetail() {
 	}, [status?.status]);
 
 	useEffect(() => {
-		if (!id) return;
+		if (!id || loading) return;
 
 		let cancelled = false;
 		let timer: number | undefined;
@@ -161,12 +176,20 @@ export default function CheckDetail() {
 			cancelled = true;
 			if (timer !== undefined) window.clearTimeout(timer);
 		};
-	}, [id, user]);
+	}, [id, loading, user]);
 
 	if (loading) return <div className="text-center py-12">Loading...</div>;
 	if (!id) {
 		return <div className="text-red-700">Invalid check ID.</div>;
 	}
+
+	const resultByName = new Map((run?.checkResults ?? []).map((result) => [result.check, result]));
+	const orderedResults: CheckDefinition[] = [
+		...checkDefinitions,
+		...(run?.checkResults ?? [])
+			.filter((result) => !checkDefinitions.some((definition) => definition.name === result.check))
+			.map((result) => ({ name: result.check, help: 'This check is not documented in the current check list.' }))
+	];
 
 	return (
 		<div className="space-y-8">
@@ -260,6 +283,11 @@ export default function CheckDetail() {
 						</button>
 					</div>
 				)}
+				{run?.source && (
+					<button type="button" onClick={() => downloadBase64(run.source!, `check-${shortValue(id)}.zip`, 'application/zip')} className="mt-4 px-3 py-2 rounded bg-gray-800 text-white hover:bg-gray-900">
+						Download source ZIP
+					</button>
+				)}
 			</div>
 
 			{run && (
@@ -267,25 +295,31 @@ export default function CheckDetail() {
 					<div className="mb-6">
 						<h2 className="text-xl font-bold">Checks</h2>
 					</div>
-					{run.checkResults.length === 0 ? (
+					{orderedResults.length === 0 ? (
 						<p className="text-gray-500">No check results returned.</p>
 					) : (
 						<div className="space-y-3">
-							{run.checkResults.map((checkResult, index) => (
-								<details key={`${checkResult.check}-${index}`} className="rounded border border-gray-200">
+							{orderedResults.map((definition, index) => {
+								const checkResult = resultByName.get(definition.name);
+								const result = checkResult?.result ?? 0;
+								return (
+								<details key={`${definition.name}-${index}`} className="rounded border border-gray-200">
 									<summary className="flex cursor-pointer list-none items-center justify-between gap-4 px-4 py-3 hover:bg-gray-50">
-										<span className="font-medium">{checkResult.check}</span>
+										<span className="flex items-center gap-2 font-medium"><span>{definition.name}</span><span className="text-xs text-blue-600" title={definition.help} aria-label={`Help for ${definition.name}`}>?</span></span>
 										<span className="flex shrink-0 items-center gap-2">
-											<span className={`rounded px-2 py-1 text-xs font-semibold ${getResultClass(checkResult.result)}`}>
-												{getResultLabel(checkResult.result)}
+											<span className={`rounded px-2 py-1 text-xs font-semibold ${getResultClass(result)}`}>
+												{getResultLabel(result)}
 											</span>
 										</span>
 									</summary>
 									<div className="border-t border-gray-200 px-4 py-3 text-sm text-gray-700">
-										<div className="mt-1 whitespace-pre-wrap break-words font-mono">{checkResult.notes || '-'}</div>
+										<div className="mb-2 text-gray-500">{definition.help}</div>
+										<div className="whitespace-pre-wrap break-words font-mono">{checkResult?.notes || (checkResult ? '-' : 'Check was not returned; marked as skipped.')}</div>
+										{checkResult?.attachment && <button type="button" onClick={() => downloadBase64(checkResult.attachment!, `${definition.name}.attachment`, checkResult.attachmentType || 'application/octet-stream')} className="mt-3 px-3 py-1 rounded bg-gray-100 text-gray-800 hover:bg-gray-200">Download attachment</button>}
 									</div>
 								</details>
-							))}
+								);
+							})}
 						</div>
 					)}
 				</div>
