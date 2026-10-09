@@ -22,7 +22,7 @@ type JWTClaims struct {
 var jwtSecret []byte
 var jwtExpirationSeconds uint
 
-func Init() {
+func InitJWT() {
 	jwtSecret = []byte(helper.EnvGet("JWT_SECRET", "Almafa12"))
 	exp, err := strconv.Atoi(helper.EnvGet("JWT_EXPIRATION", "1800"))
 	if err != nil {

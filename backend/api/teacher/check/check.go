@@ -26,6 +26,7 @@ import (
 type UploadCheck struct {
 	NeptunHash *string `json:"neptunHash"`
 	Source     *string `json:"source"`
+	Token      *string `json:"token"`
 }
 
 const (

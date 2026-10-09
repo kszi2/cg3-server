@@ -1,11 +1,13 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { Turnstile, type TurnstileInstance } from '@marsidev/react-turnstile';
 import { Search, Upload as UploadIcon } from 'lucide-react';
 import { fetchWithAuth } from '../api';
 import { useAuth } from '../AuthContext';
 import { isNeptunCode, sha1 } from '../hash';
 
 type Status = { type: 'error' | 'success'; text: string } | null;
+type TurnstileConfig = { enabled: boolean; siteKey: string | null };
 
 const maxSourceSize = 1 << 20;
 
@@ -32,6 +34,26 @@ export default function Check() {
 	const [file, setFile] = useState<File | null>(null);
 	const [uploading, setUploading] = useState(false);
 	const [uploadStatus, setUploadStatus] = useState<Status>(null);
+	const [turnstileConfig, setTurnstileConfig] = useState<TurnstileConfig | null>(null);
+	const [turnstileToken, setTurnstileToken] = useState('');
+	const turnstileRef = useRef<TurnstileInstance>(null);
+
+	useEffect(() => {
+		let cancelled = false;
+		void fetchWithAuth('/api/turnstile')
+			.then(async (response) => {
+				const data = await response.json();
+				if (!response.ok) throw new Error(data?.error || 'Could not load CAPTCHA configuration.');
+				if (!cancelled) setTurnstileConfig(data);
+			})
+			.catch((error) => {
+				console.error(error);
+				if (!cancelled) setTurnstileConfig({ enabled: false, siteKey: null });
+			});
+		return () => {
+			cancelled = true;
+		};
+	}, []);
 
 	const handleUpload = async (event: React.FormEvent) => {
 		event.preventDefault();
@@ -43,12 +65,16 @@ export default function Check() {
 			setUploadStatus({ type: 'error', text: 'The ZIP file must not exceed 1 MiB.' });
 			return;
 		}
+		if (!user && turnstileConfig?.enabled && !turnstileToken) {
+			setUploadStatus({ type: 'error', text: 'Complete the CAPTCHA before uploading.' });
+			return;
+		}
 
 		setUploading(true);
 		setUploadStatus(null);
 		try {
 			const source = await readAsBase64(file);
-			const payload: { source: string; neptunHash?: string } = { source };
+			const payload: { source: string; neptunHash?: string; token?: string } = { source };
 			const code = uploadHash.trim();
 			if (!user && !code) {
 				setUploadStatus({ type: 'error', text: 'A six-character Neptun code is required for student uploads.' });
@@ -59,6 +85,7 @@ export default function Check() {
 				return;
 			}
 			if (code) payload.neptunHash = await sha1(code);
+			if (!user && turnstileToken) payload.token = turnstileToken;
 			const response = await fetchWithAuth(user ? '/api/teacher/check' : '/api/student/check', {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
@@ -67,6 +94,10 @@ export default function Check() {
 			const data = await response.json();
 			if (!response.ok) {
 				setUploadStatus({ type: 'error', text: data?.error || 'Could not upload the check.' });
+				if (!user) {
+					setTurnstileToken('');
+					turnstileRef.current?.reset();
+				}
 				return;
 			}
 			navigate(`/check/${data.uuid}`);
@@ -86,6 +117,15 @@ export default function Check() {
 			return;
 		}
 		void sha1(code).then((hash) => navigate(`/check/search/${encodeURIComponent(hash)}`));
+	};
+
+	const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+		const selectedFile = event.target.files?.[0] || null;
+		setFile(selectedFile);
+		if (!selectedFile) return;
+
+		const match = selectedFile.name.match(/^INFOC_([A-Z][A-Z0-9]{5})_/);
+		if (match) setUploadHash(match[1]);
 	};
 
 	if (loading) return <div className="text-center py-12">Loading...</div>;
@@ -123,16 +163,21 @@ export default function Check() {
 						<label htmlFor="check-source" className="block text-sm font-medium text-gray-700">
 							ZIP archive
 						</label>
-						<input
-							id="check-source"
-							type="file"
-							accept=".zip,application/zip"
-							required
-							onChange={(event) => setFile(event.target.files?.[0] || null)}
-							className="mt-1 block w-full"
-						/>
+						<input id="check-source" type="file" accept=".zip,application/zip" required onChange={handleFileChange} className="mt-1 block w-full" />
 						<p className="mt-1 text-xs text-gray-500">ZIP files up to 1 MiB.</p>
 					</div>
+					{!user && turnstileConfig?.enabled && turnstileConfig.siteKey && (
+						<Turnstile
+							ref={turnstileRef}
+							siteKey={turnstileConfig.siteKey}
+							onSuccess={setTurnstileToken}
+							onExpire={() => setTurnstileToken('')}
+							onError={() => {
+								setTurnstileToken('');
+								setUploadStatus({ type: 'error', text: 'CAPTCHA could not be loaded.' });
+							}}
+						/>
+					)}
 					<button
 						type="submit"
 						disabled={uploading}

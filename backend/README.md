@@ -12,6 +12,7 @@ The backend is a Go application built with Gin, GORM, and PostgreSQL. It exposes
 - The RabbitMQ queue is declared as a durable quorum queue.
 - RabbitMQ connections and consumers automatically reconnect after connection loss.
 - The frontend directory is read from `FRONTEND_DIR`, which defaults to `../frontend/dist`.
+- Cloudflare Turnstile can protect unauthenticated student uploads. It is disabled when `TURNSTILE_SITE_KEY=disabled` or `TURNSTILE_SITE_SECRET` is empty.
 
 ## Authentication
 
@@ -74,6 +75,32 @@ Successful endpoints return their documented JSON value. Errors use this shape:
 	"error": "error message"
 }
 ```
+
+### Cloudflare Turnstile
+
+#### `GET /api/turnstile`
+
+Return the public Turnstile configuration for the frontend. Authentication is not required.
+
+Disabled response:
+
+```json
+{
+	"enabled": false,
+	"siteKey": null
+}
+```
+
+Enabled response:
+
+```json
+{
+	"enabled": true,
+	"siteKey": "<Cloudflare site key>"
+}
+```
+
+The secret is never returned. Student upload tokens are verified server-side with Cloudflare.
 
 ### Response fields and nullability
 
@@ -557,11 +584,12 @@ Request:
 ```json
 {
 	"neptunHash": "ABC123",
-	"source": "<base64-encoded ZIP>"
+	"source": "<base64-encoded ZIP>",
+	"token": "<Turnstile response token>"
 }
 ```
 
-Unlike teacher submissions, `neptunHash` is required. The same ZIP size, ZIP-bomb, and duplicate-source validation applies. New runs are queued with priority `0`.
+Unlike teacher submissions, `neptunHash` is required. When Turnstile is enabled, `token` must contain the Cloudflare widget response. When disabled, `token` is not required. The same ZIP size, ZIP-bomb, and duplicate-source validation applies. New runs are queued with priority `0`.
 
 Response:
 
@@ -628,30 +656,32 @@ Response after processing:
 
 ## Environment variables
 
-| Variable         | Default            | Purpose                                                                  |
-| ---------------- | ------------------ | ------------------------------------------------------------------------ |
-| `PROD`           | unset              | When `true` or `1`, missing environment variables terminate the process. |
-| `GIN_MODE`       | Gin default        | Gin runtime mode.                                                        |
-| `DB_HOST`        | `localhost`        | PostgreSQL host.                                                         |
-| `DB_PORT`        | `5432`             | PostgreSQL port.                                                         |
-| `DB_USER`        | `gorm`             | PostgreSQL user.                                                         |
-| `DB_PASS`        | `gorm`             | PostgreSQL password.                                                     |
-| `DB_NAME`        | `gorm`             | PostgreSQL database name.                                                |
-| `SERVER_ADDRESS` | `0.0.0.0:8080`     | HTTP listen address.                                                     |
-| `FRONTEND_DIR`   | `../frontend/dist` | Directory for frontend static files.                                     |
-| `JWT_SECRET`     | `Almafa12`         | JWT signing secret.                                                      |
-| `JWT_EXPIRATION` | `1800`             | JWT lifetime in seconds.                                                 |
-| `RABBITMQ_USER`  | `rabbit`           | RabbitMQ username.                                                       |
-| `RABBITMQ_PASS`  | `rabbit`           | RabbitMQ password.                                                       |
-| `RABBITMQ_HOST`  | `localhost`        | RabbitMQ host.                                                           |
-| `RABBITMQ_PORT`  | `5672`             | RabbitMQ AMQP port.                                                      |
-| `RABBITMQ_QUEUE` | `check`            | RabbitMQ queue name.                                                     |
+| Variable                | Default            | Purpose                                                                  |
+| ----------------------- | ------------------ | ------------------------------------------------------------------------ |
+| `PROD`                  | unset              | When `true` or `1`, missing environment variables terminate the process. |
+| `GIN_MODE`              | Gin default        | Gin runtime mode.                                                        |
+| `DB_HOST`               | `localhost`        | PostgreSQL host.                                                         |
+| `DB_PORT`               | `5432`             | PostgreSQL port.                                                         |
+| `DB_USER`               | `gorm`             | PostgreSQL user.                                                         |
+| `DB_PASS`               | `gorm`             | PostgreSQL password.                                                     |
+| `DB_NAME`               | `gorm`             | PostgreSQL database name.                                                |
+| `SERVER_ADDRESS`        | `0.0.0.0:8080`     | HTTP listen address.                                                     |
+| `FRONTEND_DIR`          | `../frontend/dist` | Directory for frontend static files.                                     |
+| `JWT_SECRET`            | `Almafa12`         | JWT signing secret.                                                      |
+| `JWT_EXPIRATION`        | `1800`             | JWT lifetime in seconds.                                                 |
+| `TURNSTILE_SITE_KEY`    | `disabled`         | Public Cloudflare Turnstile site key; use `disabled` to disable it.      |
+| `TURNSTILE_SITE_SECRET` | empty              | Private Cloudflare Turnstile secret for server-side verification.        |
+| `RABBITMQ_USER`         | `rabbit`           | RabbitMQ username.                                                       |
+| `RABBITMQ_PASS`         | `rabbit`           | RabbitMQ password.                                                       |
+| `RABBITMQ_HOST`         | `localhost`        | RabbitMQ host.                                                           |
+| `RABBITMQ_PORT`         | `5672`             | RabbitMQ AMQP port.                                                      |
+| `RABBITMQ_QUEUE`        | `check`            | RabbitMQ queue name.                                                     |
 
 ## Error responses
 
 Most handlers return an object containing an `error` field. Common status codes are:
 
-- `400`: malformed JSON, invalid authorization header, invalid JWT, invalid UUID, invalid base64, or invalid ZIP.
+- `400`: malformed JSON, invalid authorization header, invalid JWT, invalid UUID, invalid base64, invalid ZIP, or invalid Turnstile token.
 - `401`: invalid username or password.
 - `403`: authentication succeeded but the user is not an administrator.
 - `404`: requested user, student, or run does not exist.

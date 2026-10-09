@@ -10,6 +10,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	common_api "github.com/kszi2/cg3-server/backend/api/common"
 	teacher_check "github.com/kszi2/cg3-server/backend/api/teacher/check"
 	"github.com/kszi2/cg3-server/backend/api/teacher/students"
 	"github.com/kszi2/cg3-server/backend/db"
@@ -57,6 +58,10 @@ func handleUpload(c *gin.Context) {
 	}
 	if upload.NeptunHash == nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "neptunHash is required"})
+		return
+	}
+	if !common_api.ValidateTurnstile(upload.Token) {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid captcha"})
 		return
 	}
 

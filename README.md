@@ -175,15 +175,16 @@ Each checker container is temporary and runs with no network access, a 1 GiB mem
 
 `.env.example` contains the variables used by the current Compose deployment. Important settings include:
 
-| Variable                                                                             | Purpose                                                              |
-| ------------------------------------------------------------------------------------ | -------------------------------------------------------------------- |
-| `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASS`, `DB_NAME`                                | Backend and worker PostgreSQL connection.                            |
-| `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB`                                  | PostgreSQL container initialization.                                 |
-| `RABBITMQ_HOST`, `RABBITMQ_PORT`, `RABBITMQ_USER`, `RABBITMQ_PASS`, `RABBITMQ_QUEUE` | Backend and worker RabbitMQ connection.                              |
-| `JWT_SECRET`, `JWT_EXPIRATION`                                                       | JWT signing and expiration.                                          |
-| `SERVER_ADDRESS`                                                                     | Backend HTTP listen address.                                         |
-| `CG3_DOCKER_IMAGE`                                                                   | Checker image launched by the worker.                                |
-| `PROD`                                                                               | Makes missing environment variables fatal when set to `true` or `1`. |
+| Variable                                                                             | Purpose                                                                                |
+| ------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------- |
+| `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASS`, `DB_NAME`                                | Backend and worker PostgreSQL connection.                                              |
+| `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB`                                  | PostgreSQL container initialization.                                                   |
+| `RABBITMQ_HOST`, `RABBITMQ_PORT`, `RABBITMQ_USER`, `RABBITMQ_PASS`, `RABBITMQ_QUEUE` | Backend and worker RabbitMQ connection.                                                |
+| `JWT_SECRET`, `JWT_EXPIRATION`                                                       | JWT signing and expiration.                                                            |
+| `TURNSTILE_SITE_KEY`, `TURNSTILE_SITE_SECRET`                                        | Cloudflare Turnstile configuration. Set the site key to `disabled` to disable CAPTCHA. |
+| `SERVER_ADDRESS`                                                                     | Backend HTTP listen address.                                                           |
+| `CG3_DOCKER_IMAGE`                                                                   | Checker image launched by the worker.                                                  |
+| `PROD`                                                                               | Makes missing environment variables fatal when set to `true` or `1`.                   |
 
 The backend runs database migrations at startup. The worker connects to the same database without running migrations.
 
