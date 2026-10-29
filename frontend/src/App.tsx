@@ -3,7 +3,6 @@ import type { ReactNode } from 'react';
 import { AuthProvider, useAuth } from './AuthContext';
 import Layout from './Layout';
 import Login from './pages/Login';
-import User from './pages/User';
 import Check from './pages/Check';
 import CheckDetail from './pages/CheckDetail';
 import CheckSearch from './pages/CheckSearch';
@@ -28,14 +27,6 @@ function App() {
 					<Route path="/" element={<Layout />}>
 						<Route index element={<Check />} />
 						<Route path="login" element={<Login />} />
-						<Route
-							path="user"
-							element={
-								<RequireAuth>
-									<User />
-								</RequireAuth>
-							}
-						/>
 						<Route
 							path="admin"
 							element={

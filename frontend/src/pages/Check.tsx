@@ -136,7 +136,7 @@ export default function Check() {
 			<div className="bg-white p-8 rounded-lg shadow">
 				<h2 className="text-xl font-bold mb-2">Upload a check</h2>
 				<p className="text-gray-600 mb-6">
-					{user ? 'Upload a ZIP archive with an optional student assignment.' : 'Upload a ZIP archive for checking. A Neptun hash is required.'}
+					{user ? 'Upload a ZIP archive with an optional student assignment.' : 'Upload a ZIP archive for checking. A Neptun code is required.'}
 				</p>
 				{uploadStatus && (
 					<div className={`mb-4 p-3 rounded ${uploadStatus.type === 'success' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
@@ -210,7 +210,7 @@ export default function Check() {
 								className="block w-full px-3 py-2 border border-gray-300 rounded-md"
 								placeholder="ABC123"
 								maxLength={6}
-								aria-label="Neptun hash"
+								aria-label="Neptun code"
 							/>
 							<button type="submit" className="inline-flex items-center gap-2 px-4 py-2 rounded bg-gray-800 text-white hover:bg-gray-900">
 								<Search className="w-4 h-4" />

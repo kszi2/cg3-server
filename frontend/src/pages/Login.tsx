@@ -35,7 +35,7 @@ export default function Login() {
 				admin: data.admin
 			});
 
-			navigate('/user');
+			navigate('/');
 		} catch (err) {
 			console.error(err);
 			setError('Network error');
