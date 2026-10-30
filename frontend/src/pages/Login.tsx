@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../AuthContext';
 import { fetchWithAuth } from '../api';
+import { useLanguage } from '../i18n';
 
 export default function Login() {
 	const [username, setUsername] = useState('');
@@ -9,6 +10,7 @@ export default function Login() {
 	const [error, setError] = useState('');
 	const { login } = useAuth();
 	const navigate = useNavigate();
+	const { t } = useLanguage();
 
 	const handleSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
@@ -23,7 +25,7 @@ export default function Login() {
 
 			const data = await res.json();
 			if (!res.ok) {
-				setError(data?.error || 'Login failed');
+				setError(data?.error || t('loginFailed'));
 				return;
 			}
 
@@ -38,17 +40,17 @@ export default function Login() {
 			navigate('/');
 		} catch (err) {
 			console.error(err);
-			setError('Network error');
+			setError(t('networkError'));
 		}
 	};
 
 	return (
 		<div className="max-w-md mx-auto bg-white p-8 rounded-lg shadow">
-			<h2 className="text-2xl font-bold text-center mb-6">Login</h2>
+			<h2 className="text-2xl font-bold text-center mb-6">{t('loginTitle')}</h2>
 			{error && <div className="bg-red-50 text-red-600 p-3 rounded mb-4">{error}</div>}
 			<form onSubmit={handleSubmit} className="space-y-4">
 				<div>
-					<label className="block text-sm font-medium text-gray-700">Username</label>
+					<label className="block text-sm font-medium text-gray-700">{t('username')}</label>
 					<input
 						type="text"
 						required
@@ -58,7 +60,7 @@ export default function Login() {
 					/>
 				</div>
 				<div>
-					<label className="block text-sm font-medium text-gray-700">Password</label>
+					<label className="block text-sm font-medium text-gray-700">{t('password')}</label>
 					<input
 						type="password"
 						required
@@ -71,7 +73,7 @@ export default function Login() {
 					type="submit"
 					className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
 				>
-					Sign In
+					{t('signIn')}
 				</button>
 			</form>
 		</div>

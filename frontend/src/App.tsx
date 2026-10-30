@@ -9,21 +9,24 @@ import CheckSearch from './pages/CheckSearch';
 import MyChecks from './pages/MyChecks';
 import CheckAll from './pages/CheckAll';
 import Admin from './pages/Admin';
+import { LanguageProvider, useLanguage } from './i18n';
 
 function RequireAuth({ children }: { children: ReactNode }) {
 	const { user, loading } = useAuth();
+	const { t } = useLanguage();
 
-	if (loading) return <div className="text-center py-12">Loading...</div>;
-	if (!user) return <div className="text-center py-12 text-gray-500">Please log in to access this page.</div>;
+	if (loading) return <div className="text-center py-12">{t('loading')}</div>;
+	if (!user) return <div className="text-center py-12 text-gray-500">{t('loginRequired')}</div>;
 
 	return children;
 }
 
 function App() {
 	return (
-		<AuthProvider>
-			<Router>
-				<Routes>
+		<LanguageProvider>
+			<AuthProvider>
+				<Router>
+					<Routes>
 					<Route path="/" element={<Layout />}>
 						<Route index element={<Check />} />
 						<Route path="login" element={<Login />} />
@@ -62,9 +65,10 @@ function App() {
 						/>
 						<Route path="check/:id" element={<CheckDetail />} />
 					</Route>
-				</Routes>
-			</Router>
-		</AuthProvider>
+					</Routes>
+				</Router>
+			</AuthProvider>
+		</LanguageProvider>
 	);
 }
 

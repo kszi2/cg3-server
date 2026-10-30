@@ -5,6 +5,7 @@ import { fetchWithAuth } from '../api';
 import type { User as UserType } from '../AuthContext';
 import { getHungarianInitials, isNeptunCode, sha1, studentLabel } from '../hash';
 import { Link } from 'react-router-dom';
+import { useLanguage } from '../i18n';
 
 type StudentRecord = { id: number; neptunHash: string; initials: string; notes: string };
 type CardStatus = { type: 'error' | 'success'; text: string } | null;
@@ -38,6 +39,7 @@ function parseStudentCsv(csv: string) {
 
 export default function Admin() {
 	const { user } = useAuth();
+	const { t } = useLanguage();
 	const [allUsers, setAllUsers] = useState<UserType[]>([]);
 	const [students, setStudents] = useState<StudentRecord[]>([]);
 	const [userForm, setUserForm] = useState(emptyCreateForm);
@@ -129,7 +131,7 @@ export default function Admin() {
 		};
 	}, [studentSearch]);
 
-	if (!user?.admin) return <div className="text-center py-12 text-red-700">Administrator access is required.</div>;
+	if (!user?.admin) return <div className="text-center py-12 text-red-700">{t('adminAccess')}</div>;
 
 	const normalizedStudentSearch = studentSearch.trim().toLocaleLowerCase();
 	const filteredStudents = students.filter((student) => {
@@ -281,19 +283,19 @@ export default function Admin() {
 
 	return (
 		<div className="space-y-8">
-			<h1 className="text-2xl font-bold">Admin panel</h1>
+			<h1 className="text-2xl font-bold">{t('adminPanel')}</h1>
 			<div className="bg-white p-8 rounded-lg shadow">
 				{createUserStatus && (
 					<div className={`mb-4 p-3 rounded ${createUserStatus.type === 'success' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
 						{createUserStatus.text}
 					</div>
 				)}
-				<h2 className="text-2xl font-bold mb-6">Create user</h2>
+				<h2 className="text-2xl font-bold mb-6">{t('createUser')}</h2>
 				<form onSubmit={handleCreateUser} className="grid grid-cols-1 md:grid-cols-2 gap-4">
 					<input
 						type="text"
 						required
-						placeholder="Username"
+						placeholder={t('username')}
 						value={userForm.username}
 						onChange={(event) => setUserForm({ ...userForm, username: event.target.value })}
 						className="px-3 py-2 border border-gray-300 rounded-md"
@@ -301,7 +303,7 @@ export default function Admin() {
 					<input
 						type="text"
 						required
-						placeholder="Display name"
+						placeholder={t('displayName')}
 						value={userForm.displayname}
 						onChange={(event) => setUserForm({ ...userForm, displayname: event.target.value })}
 						className="px-3 py-2 border border-gray-300 rounded-md"
@@ -309,17 +311,17 @@ export default function Admin() {
 					<input
 						type="password"
 						required
-						placeholder="Password"
+						placeholder={t('password')}
 						value={userForm.password}
 						onChange={(event) => setUserForm({ ...userForm, password: event.target.value })}
 						className="px-3 py-2 border border-gray-300 rounded-md md:col-span-2"
 					/>
 					<label className="inline-flex items-center gap-2 md:col-span-2">
 						<input type="checkbox" checked={userForm.admin} onChange={(event) => setUserForm({ ...userForm, admin: event.target.checked })} />{' '}
-						Administrator
+						{t('administrator')}
 					</label>
 					<button type="submit" className="px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700 md:col-span-2">
-						Create user
+						{t('createUser')}
 					</button>
 				</form>
 			</div>
@@ -330,16 +332,16 @@ export default function Admin() {
 						{userTableStatus.text}
 					</div>
 				)}
-				<h2 className="text-2xl font-bold mb-6">Users</h2>
+				<h2 className="text-2xl font-bold mb-6">{t('users')}</h2>
 				<div className="overflow-x-auto">
 					<table className="min-w-full divide-y divide-gray-200">
 						<thead className="bg-gray-50">
 							<tr>
-								<th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Username</th>
-								<th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Display name</th>
-								<th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Password</th>
-								<th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Admin</th>
-								<th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Action</th>
+								<th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t('username')}</th>
+								<th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t('displayName')}</th>
+								<th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t('password')}</th>
+								<th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t('admin')}</th>
+								<th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t('action')}</th>
 							</tr>
 						</thead>
 						<tbody className="divide-y divide-gray-200">
@@ -364,7 +366,7 @@ export default function Admin() {
 												onChange={(event) =>
 													setUserEdits((previous) => ({ ...previous, [entry.id]: { ...edit, password: event.target.value } }))
 												}
-												placeholder="new password"
+												placeholder={t('newPassword')}
 												className="w-full px-2 py-1 border border-gray-300 rounded-md"
 											/>
 										</td>
@@ -399,7 +401,7 @@ export default function Admin() {
 						{studentStatus.text}
 					</div>
 				)}
-				<h2 className="text-2xl font-bold mb-6">Students</h2>
+				<h2 className="text-2xl font-bold mb-6">{t('students')}</h2>
 				<form onSubmit={handleCreateStudent} className="mb-6 flex gap-3 flex-col md:flex-row">
 					<input
 						id="student-csv"
@@ -410,7 +412,7 @@ export default function Admin() {
 						className="flex-1 px-3 py-2 border border-gray-300 rounded-md"
 					/>
 					<button type="submit" className="px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700">
-						Import CSV
+						{t('importCsv')}
 					</button>
 				</form>
 				<div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -418,26 +420,26 @@ export default function Admin() {
 						type="search"
 						value={studentSearch}
 						onChange={(event) => setStudentSearch(event.target.value)}
-						placeholder="Search students"
+						placeholder={t('studentSearch')}
 						className="w-full sm:max-w-sm px-3 py-2 border border-gray-300 rounded-md"
 					/>
-					<span className="text-sm text-gray-500">{filteredStudents.length} student(s)</span>
+					<span className="text-sm text-gray-500">{filteredStudents.length} {t('students').toLocaleLowerCase()}</span>
 				</div>
 				<div className="overflow-x-auto">
 					<table className="min-w-full divide-y divide-gray-200">
 						<thead className="bg-gray-50">
 							<tr>
-								<th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Student</th>
-								<th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Initials</th>
-								<th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Notes</th>
-								<th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Action</th>
+								<th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t('student')}</th>
+								<th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t('initials')}</th>
+								<th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t('notes')}</th>
+								<th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t('action')}</th>
 							</tr>
 						</thead>
 						<tbody className="divide-y divide-gray-200">
 							{filteredStudents.length === 0 ? (
 								<tr>
 									<td colSpan={4} className="px-4 py-6 text-gray-500 text-center">
-										{students.length === 0 ? 'No students yet.' : 'No students match the search.'}
+										{students.length === 0 ? t('noStudents') : t('noStudentMatches')}
 									</td>
 								</tr>
 							) : (
@@ -480,14 +482,14 @@ export default function Admin() {
 													onClick={() => void handleStudentUpdate(student)}
 													className="mr-2 px-3 py-1 rounded bg-blue-600 text-white hover:bg-blue-700"
 												>
-													Save
+													{t('save')}
 												</button>
 												<button
 													type="button"
 													onClick={() => void handleDeleteStudent(student.id)}
 													className="px-3 py-1 rounded bg-red-600 text-white hover:bg-red-700"
 												>
-													Delete
+													{t('delete')}
 												</button>
 											</td>
 										</tr>
@@ -504,10 +506,10 @@ export default function Admin() {
 						onClick={() => setStudentPage((page) => Math.max(1, page - 1))}
 						className="px-3 py-1 rounded border border-gray-300 disabled:opacity-50"
 					>
-						Previous
+						{t('previous')}
 					</button>
 					<span>
-						Page {currentStudentPage} of {studentPageCount}
+						{t('pageOf', { page: currentStudentPage, total: studentPageCount })}
 					</span>
 					<button
 						type="button"
@@ -515,7 +517,7 @@ export default function Admin() {
 						onClick={() => setStudentPage((page) => Math.min(studentPageCount, page + 1))}
 						className="px-3 py-1 rounded border border-gray-300 disabled:opacity-50"
 					>
-						Next
+						{t('next')}
 					</button>
 				</div>
 			</div>
