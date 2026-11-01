@@ -30,7 +30,7 @@ func main() {
 	api.Register(router.Group("/api"))
 
 	router.Static("/assets", frontendDir+"/assets")
-	router.StaticFile("/favicon.svg", frontendDir+"/favicon.svg")
+	router.StaticFile("/favicon.ico", frontendDir+"/favicon.ico")
 
 	router.NoRoute(func(c *gin.Context) {
 		if strings.HasPrefix(c.Request.URL.Path, "/api/") {

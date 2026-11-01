@@ -25,7 +25,7 @@ export default function Layout() {
 					<div className="flex justify-between h-16">
 						<div className="flex items-center">
 							<Link to="/" className="flex-shrink-0 flex items-center gap-2">
-								<img src="/golyo-m.png" alt="golyo" className="h-8 w-8" />
+								<img src="/assets/golyo-m.png" alt="golyo" className="h-8 w-8" />
 								<span className="font-bold text-xl text-gray-900">CG3 Checker</span>
 							</Link>
 						</div>

@@ -57,6 +57,7 @@ export default function CheckDetail() {
 	const [run, setRun] = useState<Run | null>(null);
 	const [error, setError] = useState<PageState>(null);
 	const [pollCountdown, setPollCountdown] = useState(5);
+	const [pollGeneration, setPollGeneration] = useState(0);
 	const [actionStatus, setActionStatus] = useState<PageState>(null);
 	const [acting, setActing] = useState(false);
 
@@ -80,6 +81,7 @@ export default function CheckDetail() {
 			setRun(null);
 			setActionStatus({ type: 'success', text: t('checkQueued') });
 			await loadCurrentStatus();
+			setPollGeneration((generation) => generation + 1);
 		} catch (actionError) {
 			console.error(actionError);
 			setActionStatus({ type: 'error', text: actionError instanceof Error ? actionError.message : t('checkReRunError') });
@@ -173,7 +175,7 @@ export default function CheckDetail() {
 			cancelled = true;
 			if (timer !== undefined) window.clearTimeout(timer);
 		};
-	}, [id, loading, user]);
+	}, [id, loading, pollGeneration, t, user]);
 
 	if (loading) return <div className="text-center py-12">{t('loading')}</div>;
 	if (!id) {
