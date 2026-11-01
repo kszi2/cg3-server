@@ -7,7 +7,7 @@ RUN apt update -y && apt install -y libsdl2-dev libsdl2-gfx-dev libsdl2-image-de
     unzip
 
 WORKDIR /cg3/tools/
-COPY ./checker/callgraph.php ./checker/debugmalloc.h .
+COPY ./checker/callgraph.php ./checker/debugmalloc.h ./checker/debugmalloc-empty.h .
 
 WORKDIR /cg3/
 COPY ./checker/cg.sh .

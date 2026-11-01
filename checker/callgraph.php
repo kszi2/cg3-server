@@ -450,12 +450,15 @@ class ProcessFiles {
         $this->wd = $wd;
     }
 
-    private function process_files(string $command, array $files) {
+    private function process_files(string $command, array $files, array $options) {
         $cwd = getcwd();
+
+        $optionsstr = implode(" ", array_map("escapeshellarg", $options));
+
         foreach ($files as $file) {
             $file = realpath($file);
             chdir($this->wd);   /* cannot set gcc rtl-expand filename... so chdir to temp dir */
-            $cmd = sprintf($command, escapeshellarg($file));
+            $cmd = sprintf($command, $optionsstr . " " . escapeshellarg($file));
             exec($cmd, $output, $retval);
             if ($retval != "")
                 error_log(implode("\n", $output));
@@ -463,16 +466,16 @@ class ProcessFiles {
         }
     }
 
-    public function process_c(array $files) {
-        return $this->process_files("gcc -I/usr/include/SDL2 -I/usr/include/SDL3 -I/usr/include/SDL3_image -I/usr/include/SDL3_ttf -w -c -fdump-rtl-expand -o /dev/null %s", $files);
+    public function process_c(array $files, array $compileroptions) {
+        return $this->process_files("gcc -w -c -fdump-rtl-expand -o /dev/null %s", $files, $compileroptions);
     }
 
-    public function process_cpp(array $files) {
-        return $this->process_files("g++ -I/usr/include/SDL2 -I/usr/include/SDL3 -I/usr/include/SDL3_image -I/usr/include/SDL3_ttf -w -c -fdump-rtl-expand -o /dev/null %s", $files);
+    public function process_cpp(array $files, array $compileroptions) {
+        return $this->process_files("g++ -w -c -fdump-rtl-expand -o /dev/null %s", $files, $compileroptions);
     }
 
     public function process_expand(array $files) {
-        return $this->process_files("cp %s .", $files);
+        return $this->process_files("cp %s .", $files, []);
     }
 }
 
@@ -480,6 +483,7 @@ function process_args(array $argv) : array {
     $cfiles = [];
     $cppfiles = [];
     $expandfiles = [];
+    $compileroptions = [];
     $svgfile = "output.svg";
     for ($i = 1; $i < count($argv); ++$i) {
         if (substr($argv[$i], -2) == ".c")
@@ -490,6 +494,8 @@ function process_args(array $argv) : array {
             $expandfiles[] = $argv[$i];
         else if (substr($argv[$i], -4) == ".svg")
             $svgfile = $argv[$i];
+        else if (substr($argv[$i], 0, 2) == "-O")
+            $compileroptions[] = substr($argv[$i], 2);
         else {
             error_log("Unknown param: {$argv[$i]}");
             return [];
@@ -500,6 +506,7 @@ function process_args(array $argv) : array {
         'cfiles' => $cfiles,
         'cppfiles' => $cppfiles,
         'expandfiles' => $expandfiles,
+        'compileroptions' => $compileroptions,
         'svgfile' => $svgfile,
     ];
 }
@@ -510,8 +517,8 @@ function create_svg(array $args) {
     
     /* compile sources */
     $pf = new ProcessFiles($workdir);
-    $pf->process_c($args['cfiles']);
-    $pf->process_cpp($args['cppfiles']);
+    $pf->process_c($args['cfiles'], $args['compileroptions']);
+    $pf->process_cpp($args['cppfiles'], $args['compileroptions']);
     $pf->process_expand($args['expandfiles']);
 
     /* process expand files */

@@ -163,7 +163,9 @@ check-0300-cg3() {
 	-O -D_REENTRANT	-O -DSDL_DISABLE_IMMINTRIN_H -O -DSDL_DISABLE_XMMINTRIN_H -O -DSDL_DISABLE_EMMINTRIN_H \
 	-O -DSDL_DISABLE_PMMINTRIN_H -O -DSDL_DISABLE_MMINTRIN_H "$WORKDIR" > $CHECK_DIR/compile_commands.json
 
-	cg3 check --complete -R -j $CHECK_DIR/report.json -f debugmalloc . > $CHECK_DIR/out 2> $CHECK_DIR/error
+	ln -s $CHECK_DIR/compile_commands.json $WORKDIR/compile_commands.json
+
+	cg3 check --complete -R -j $CHECK_DIR/report.json -f debugmalloc $WORKDIR > $CHECK_DIR/out 2> $CHECK_DIR/error
 }
 
 check-0400-cg() {
@@ -172,9 +174,19 @@ check-0400-cg() {
 	cd $CHECK_DIR || exit
 	touch "$CHECK_DIR/run"
 
-	find $WORKDIR -name "debugmalloc.h" -exec sh -c 'echo '' > "$1"' shell {} \;
+	find "$WORKDIR" -type f -name "debugmalloc.h" -exec sh -c 'cp "$1"/debugmalloc-empty.h "$2"' shell "$TOOLS_DIR" {} \;
 
-	find $WORKDIR -name '*.c' -print0 -o -name '*.cpp' -print0 | xargs -0 php $TOOLS_DIR/callgraph.php > $CHECK_DIR/out 2> $CHECK_DIR/error
+	includes=(
+		-O-I/usr/include/SDL2
+		-O-I/usr/include/SDL3
+		-O-I/usr/include/SDL3_image
+		-O-I/usr/include/SDL3_ttf
+	)
+	while IFS= read -r -d '' directory; do
+		includes+=("-O-I$directory")
+	done < <(find "$WORKDIR" -type d -print0)
+
+	find $WORKDIR -name '*.c' -print0 -o -name '*.cpp' -print0 | xargs -0 php $TOOLS_DIR/callgraph.php "${includes[@]}" > $CHECK_DIR/out 2> $CHECK_DIR/error
 
 	if [ -e "output.svg" ]; then
 		rsvg-convert -f pdf output.svg -o $CHECK_DIR/cg.pdf

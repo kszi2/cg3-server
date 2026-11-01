@@ -166,6 +166,11 @@ func (check *CheckProcess) GetResult() []db.CheckResult {
 			ret1.Notes = &str
 		}
 
+		if ret1.Notes != nil {
+			notes := strings.ToValidUTF8(*ret1.Notes, "?")
+			ret1.Notes = &notes
+		}
+
 		ret = append(ret, ret1)
 	}
 
