@@ -84,6 +84,9 @@ func Register(router *gin.RouterGroup) {
 }
 
 func handleCreate(c *gin.Context) {
+	action := common_api.BeginAction(c, "userManagement")
+	defer action.Log()
+
 	var register UserCreate
 
 	err := c.ShouldBindBodyWithJSON(&register)
@@ -103,6 +106,7 @@ func handleCreate(c *gin.Context) {
 
 	digest, err := hasher.Hash(register.Password)
 	if err != nil {
+		action.Error(err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
 		return
 	}
@@ -121,6 +125,7 @@ func handleCreate(c *gin.Context) {
 			return
 		}
 
+		action.Error(res.Error)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
 		return
 	}
@@ -129,6 +134,9 @@ func handleCreate(c *gin.Context) {
 }
 
 func handleLogin(c *gin.Context) {
+	action := common_api.BeginAction(c, "user")
+	defer action.Log()
+
 	var login UserLogin
 
 	err := c.ShouldBindBodyWithJSON(&login)
@@ -147,6 +155,7 @@ func handleLogin(c *gin.Context) {
 			return
 		}
 
+		action.Error(res.Error)
 		log.Printf("DB error: %v", res.Error)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
 		return
@@ -160,6 +169,7 @@ func handleLogin(c *gin.Context) {
 
 	digest, err := decoder.Decode(user.Password)
 	if err != nil {
+		action.Error(err)
 		log.Printf("Password decode error: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
 		return
@@ -170,9 +180,11 @@ func handleLogin(c *gin.Context) {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid username or password"})
 		return
 	}
+	action.UserID = &user.ID
 
 	token, err := common_api.GenerateJWT(&user)
 	if err != nil {
+		action.Error(err)
 		log.Printf("JWT generate error: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
 		return
@@ -185,6 +197,9 @@ func handleLogin(c *gin.Context) {
 }
 
 func handleMe(c *gin.Context) {
+	action := common_api.BeginAction(c, "user")
+	defer action.Log()
+
 	ok, claims := common_api.ValidateJWT(c)
 	if !ok {
 		return
@@ -194,6 +209,7 @@ func handleMe(c *gin.Context) {
 
 	res := db.DB.Where(claims.UserID).First(&user)
 	if res.Error != nil {
+		action.Error(res.Error)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
 		return
 	}
@@ -202,6 +218,9 @@ func handleMe(c *gin.Context) {
 }
 
 func handleModify(c *gin.Context) {
+	action := common_api.BeginAction(c, "userManagement")
+	defer action.Log()
+
 	var modify UserModify
 
 	err := c.ShouldBindBodyWithJSON(&modify)
@@ -244,6 +263,7 @@ func handleModify(c *gin.Context) {
 	if modify.Password != nil {
 		digest, err := hasher.Hash(*modify.Password)
 		if err != nil {
+			action.Error(err)
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
 			return
 		}
@@ -252,6 +272,7 @@ func handleModify(c *gin.Context) {
 	}
 
 	if err := db.DB.Save(&user).Error; err != nil {
+		action.Error(err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
 		return
 	}
@@ -260,6 +281,9 @@ func handleModify(c *gin.Context) {
 }
 
 func handleAll(c *gin.Context) {
+	action := common_api.BeginAction(c, "userManagement")
+	defer action.Log()
+
 	ok, claims := common_api.ValidateJWT(c)
 	if !ok {
 		return
@@ -272,6 +296,7 @@ func handleAll(c *gin.Context) {
 	var users []db.User
 	res := db.DB.Find(&users)
 	if res.Error != nil {
+		action.Error(res.Error)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
 		return
 	}

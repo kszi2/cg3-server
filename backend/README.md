@@ -12,6 +12,7 @@ The backend is a Go application built with Gin, GORM, and PostgreSQL. It exposes
 - The RabbitMQ queue is declared as a durable quorum queue.
 - RabbitMQ connections and consumers automatically reconnect after connection loss.
 - The frontend directory is read from `FRONTEND_DIR`, which defaults to `../frontend/dist`.
+- API actions are logged to the `logs` table. Set `TRUSTED_PROXIES` to a comma-separated list of trusted proxy IP addresses or CIDR ranges to use forwarded headers when recording source IPs.
 - Cloudflare Turnstile can protect unauthenticated student uploads. It is disabled when `TURNSTILE_SITE_KEY=disabled` or `TURNSTILE_SITE_SECRET` is empty.
 
 ## Authentication

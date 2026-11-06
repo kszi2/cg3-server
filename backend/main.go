@@ -6,6 +6,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/kszi2/cg3-server/backend/api"
+	common_api "github.com/kszi2/cg3-server/backend/api/common"
 	"github.com/kszi2/cg3-server/backend/db"
 	"github.com/kszi2/cg3-server/backend/helper"
 	"github.com/kszi2/cg3-server/backend/queue"
@@ -26,6 +27,14 @@ func main() {
 	frontendDir := helper.EnvGet("FRONTEND_DIR", "../frontend/dist")
 
 	router := gin.Default()
+
+	trustedProxies, err := common_api.ParseTrustedProxies(helper.EnvGet("TRUSTED_PROXIES", ""))
+	if err != nil {
+		log.Fatalf("Failed to parse trusted proxies: %v", err)
+	}
+	if err := router.SetTrustedProxies(trustedProxies); err != nil {
+		log.Fatalf("Failed to configure trusted proxies: %v", err)
+	}
 
 	api.Register(router.Group("/api"))
 

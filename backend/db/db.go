@@ -2,6 +2,7 @@ package db
 
 import (
 	"fmt"
+	"net/netip"
 	"time"
 
 	"github.com/google/uuid"
@@ -66,6 +67,28 @@ type Student struct {
 	Runs []CGRun `gorm:"foreignKey:StudentID"`
 }
 
+type Log struct {
+	gorm.Model
+
+	Type string
+	Time time.Time
+
+	UserID *uint
+	User   *User `gorm:"foreignKey:UserID"`
+
+	CGRunID *uint
+	CGRun   *CGRun `gorm:"foreignKey:CGRunID"`
+
+	StudentID *uint
+	Student   *Student `gorm:"foreignKey:StudentID"`
+
+	Endpoint   *string
+	Method     *string
+	IP         *netip.Addr `gorm:"type:inet"`
+	StatusCode *uint
+	Details    string
+}
+
 func DbConnect(migrate bool) error {
 	host := helper.EnvGet("DB_HOST", "localhost")
 	user := helper.EnvGet("DB_USER", "gorm")
@@ -86,7 +109,7 @@ func DbConnect(migrate bool) error {
 		return err
 	}
 
-	models := []any{&User{}, &CGRun{}, &CheckResult{}, &Student{}}
+	models := []any{&User{}, &CGRun{}, &CheckResult{}, &Student{}, &Log{}}
 
 	for _, model := range models {
 		err = DB.AutoMigrate(model)

@@ -66,6 +66,9 @@ func Student2AdminReturn(student *db.Student) *StudentAdminReturn {
 }
 
 func handleCreate(c *gin.Context) {
+	action := common_api.BeginAction(c, "studentManagement")
+	defer action.Log()
+
 	ok, _ := common_api.ValidateJWTAdmin(c)
 	if !ok {
 		return
@@ -154,6 +157,7 @@ func handleCreate(c *gin.Context) {
 		return nil
 	})
 	if err != nil {
+		action.Error(err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
 		return
 	}
@@ -161,6 +165,9 @@ func handleCreate(c *gin.Context) {
 	response := make([]*StudentAdminReturn, 0, len(input))
 	for _, item := range input {
 		response = append(response, Student2AdminReturn(studentsByHash[item.NeptunHash]))
+	}
+	if len(response) > 0 {
+		action.StudentID = &response[0].ID
 	}
 	c.JSON(http.StatusOK, response)
 }
@@ -174,6 +181,9 @@ func hashes(input []StudentCreate) []string {
 }
 
 func handleAll(c *gin.Context) {
+	action := common_api.BeginAction(c, "studentManagement")
+	defer action.Log()
+
 	ok, _ := common_api.ValidateJWTAdmin(c)
 	if !ok {
 		return
@@ -181,6 +191,7 @@ func handleAll(c *gin.Context) {
 
 	var students []db.Student
 	if err := db.DB.Select("id", "neptun_hash", "initials", "notes").Order("initials, id").Find(&students).Error; err != nil {
+		action.Error(err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
 		return
 	}
@@ -193,6 +204,9 @@ func handleAll(c *gin.Context) {
 }
 
 func handleUpdate(c *gin.Context) {
+	action := common_api.BeginAction(c, "studentManagement")
+	defer action.Log()
+
 	ok, _ := common_api.ValidateJWTAdmin(c)
 	if !ok {
 		return
@@ -217,6 +231,7 @@ func handleUpdate(c *gin.Context) {
 		return
 	}
 	if query.Error != nil {
+		action.Error(query.Error)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
 		return
 	}
@@ -229,14 +244,19 @@ func handleUpdate(c *gin.Context) {
 	}
 
 	if err := db.DB.Save(&student).Error; err != nil {
+		action.Error(err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
 		return
 	}
 
+	action.StudentID = &student.ID
 	c.JSON(http.StatusOK, Student2AdminReturn(&student))
 }
 
 func handleDelete(c *gin.Context) {
+	action := common_api.BeginAction(c, "studentManagement")
+	defer action.Log()
+
 	ok, _ := common_api.ValidateJWTAdmin(c)
 	if !ok {
 		return
@@ -255,13 +275,16 @@ func handleDelete(c *gin.Context) {
 		return
 	}
 	if query.Error != nil {
+		action.Error(query.Error)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
 		return
 	}
 	if err := db.DB.Delete(&student).Error; err != nil {
+		action.Error(err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
 		return
 	}
 
+	action.StudentID = &student.ID
 	c.JSON(http.StatusOK, gin.H{"status": "deleted"})
 }

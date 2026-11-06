@@ -89,6 +89,9 @@ func Register(router *gin.RouterGroup) {
 }
 
 func handleUpload(c *gin.Context) {
+	action := common_api.BeginAction(c, "teacherCheck")
+	defer action.Log()
+
 	ok, claims := common_api.ValidateJWT(c)
 	if !ok {
 		return
@@ -135,11 +138,13 @@ func handleUpload(c *gin.Context) {
 				c.JSON(http.StatusBadRequest, gin.H{"error": "student not found"})
 				return
 			}
+			action.Error(err)
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
 			return
 		}
 		run.StudentID = &student.ID
 		run.Student = &student
+		action.StudentID = &student.ID
 	}
 
 	var existingRun db.CGRun
@@ -153,13 +158,27 @@ func handleUpload(c *gin.Context) {
 		First(&existingRun).
 		Error
 	if err == nil {
+		action.RunID = &existingRun.ID
 		if existingRun.CreatedBy == nil {
 			existingRun.CreatedBy = &claims.UserID
 			if err := db.DB.Save(&existingRun).Error; err != nil {
+				action.Error(err)
 				c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
 				return
 			}
 		}
+
+		if existingRun.StudentID == nil {
+			existingRun.StudentID = run.StudentID
+			existingRun.Student = run.Student
+
+			if err := db.DB.Save(&existingRun).Error; err != nil {
+				action.Error(err)
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
+				return
+			}
+		}
+		action.StudentID = existingRun.StudentID
 
 		sum := CGRunReturnSum{
 			GuestUpload: existingRun.GuestUpload,
@@ -175,10 +194,13 @@ func handleUpload(c *gin.Context) {
 	}
 
 	if err := db.DB.Create(&run).Error; err != nil {
+		action.Error(err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
 		return
 	}
+	action.RunID = &run.ID
 	if err := queue.Send(strconv.FormatUint(uint64(run.ID), 10), 10); err != nil {
+		action.Error(err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to queue run"})
 		return
 	}
@@ -241,6 +263,9 @@ func ValidateZip(source []byte) error {
 }
 
 func handleStudentRuns(c *gin.Context) {
+	action := common_api.BeginAction(c, "teacherCheck")
+	defer action.Log()
+
 	if ok, _ := common_api.ValidateJWT(c); !ok {
 		return
 	}
@@ -251,6 +276,7 @@ func handleStudentRuns(c *gin.Context) {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "student not found"})
 			return
 		}
+		action.StudentID = &student.ID
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
 		return
 	}
@@ -267,6 +293,7 @@ func handleStudentRuns(c *gin.Context) {
 		Where(&db.CGRun{StudentID: &student.ID}).
 		Find(&runs)
 	if query.Error != nil {
+		action.Error(query.Error)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
 		return
 	}
@@ -275,6 +302,9 @@ func handleStudentRuns(c *gin.Context) {
 }
 
 func handleAll(c *gin.Context) {
+	action := common_api.BeginAction(c, "teacherCheck")
+	defer action.Log()
+
 	ok, _ := common_api.ValidateJWTAdmin(c)
 	if !ok {
 		return
@@ -291,6 +321,7 @@ func handleAll(c *gin.Context) {
 		}).
 		Find(&runs)
 	if query.Error != nil {
+		action.Error(query.Error)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
 		return
 	}
@@ -299,6 +330,9 @@ func handleAll(c *gin.Context) {
 }
 
 func handleMy(c *gin.Context) {
+	action := common_api.BeginAction(c, "teacherCheck")
+	defer action.Log()
+
 	ok, claims := common_api.ValidateJWT(c)
 	if !ok {
 		return
@@ -316,6 +350,7 @@ func handleMy(c *gin.Context) {
 		Where(&db.CGRun{CreatedBy: &claims.UserID}).
 		Find(&runs)
 	if query.Error != nil {
+		action.Error(query.Error)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
 		return
 	}
@@ -324,6 +359,9 @@ func handleMy(c *gin.Context) {
 }
 
 func handleRun(c *gin.Context) {
+	action := common_api.BeginAction(c, "teacherCheck")
+	defer action.Log()
+
 	if ok, _ := common_api.ValidateJWT(c); !ok {
 		return
 	}
@@ -353,11 +391,14 @@ func handleRun(c *gin.Context) {
 		return
 	}
 	if query.Error != nil {
+		action.Error(query.Error)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
 		return
 	}
 
 	for i, result := range run.CheckResults {
+		action.RunID = &run.ID
+		action.StudentID = run.StudentID
 		run.CheckResults[i].AttachmentBase64 = BytesToString(result.Attachment)
 	}
 	run.SourceBase64 = BytesToString(run.Source)
@@ -366,6 +407,9 @@ func handleRun(c *gin.Context) {
 }
 
 func handleRunStatus(c *gin.Context) {
+	action := common_api.BeginAction(c, "teacherCheck")
+	defer action.Log()
+
 	if ok, _ := common_api.ValidateJWT(c); !ok {
 		return
 	}
@@ -383,6 +427,7 @@ func handleRunStatus(c *gin.Context) {
 		return
 	}
 	if query.Error != nil {
+		action.Error(query.Error)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
 		return
 	}
@@ -390,6 +435,8 @@ func handleRunStatus(c *gin.Context) {
 	ret := CGRunStatusReturn{
 		CheckTime: run.CheckTime,
 	}
+	action.RunID = &run.ID
+	action.StudentID = run.StudentID
 
 	if run.CheckTime != nil {
 		ret.Status = "done"
@@ -401,6 +448,9 @@ func handleRunStatus(c *gin.Context) {
 }
 
 func handleRecheck(c *gin.Context) {
+	action := common_api.BeginAction(c, "teacherCheck")
+	defer action.Log()
+
 	if ok, _ := common_api.ValidateJWT(c); !ok {
 		return
 	}
@@ -418,15 +468,18 @@ func handleRecheck(c *gin.Context) {
 		return
 	}
 	if query.Error != nil {
+		action.Error(query.Error)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
 		return
 	}
 
 	if err := db.DB.Model(&run).Update("check_time", nil).Error; err != nil {
+		action.Error(err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
 		return
 	}
 	if err := queue.Send(strconv.FormatUint(uint64(run.ID), 10), 10); err != nil {
+		action.Error(err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to queue run"})
 		return
 	}
@@ -435,6 +488,9 @@ func handleRecheck(c *gin.Context) {
 }
 
 func handleDelete(c *gin.Context) {
+	action := common_api.BeginAction(c, "teacherCheck")
+	defer action.Log()
+
 	ok, _ := common_api.ValidateJWTAdmin(c)
 	if !ok {
 		return
@@ -452,6 +508,7 @@ func handleDelete(c *gin.Context) {
 		return
 	}
 	if err != nil {
+		action.Error(err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
 		return
 	}

@@ -69,6 +69,7 @@ func ValidateJWT(c *gin.Context) (bool, *JWTClaims) {
 		return false, nil
 	}
 
+	c.Set("userID", claims.UserID)
 	return true, &claims
 }
 

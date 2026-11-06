@@ -47,6 +47,9 @@ func Register(router *gin.RouterGroup) {
 }
 
 func handleUpload(c *gin.Context) {
+	action := common_api.BeginAction(c, "studentCheck")
+	defer action.Log()
+
 	var upload teacher_check.UploadCheck
 	if err := c.ShouldBindJSON(&upload); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -95,11 +98,13 @@ func handleUpload(c *gin.Context) {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "student not found"})
 			return
 		}
+		action.Error(err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
 		return
 	}
 	run.StudentID = &student.ID
 	run.Student = &student
+	action.StudentID = &student.ID
 
 	var existingRun db.CGRun
 	err = db.DB.
@@ -111,6 +116,7 @@ func handleUpload(c *gin.Context) {
 		First(&existingRun).
 		Error
 	if err == nil {
+		action.RunID = &existingRun.ID
 		if existingRun.StudentID != nil && *existingRun.StudentID != student.ID {
 			c.JSON(http.StatusConflict, gin.H{"error": "checks already uploaded for different student"})
 			return
@@ -121,10 +127,12 @@ func handleUpload(c *gin.Context) {
 			existingRun.Student = &student
 
 			if err := db.DB.Save(&existingRun).Error; err != nil {
+				action.Error(err)
 				c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
 				return
 			}
 		}
+		action.StudentID = existingRun.StudentID
 
 		sum := CGRunCreateReturn{
 			RunID:     existingRun.RunID,
@@ -137,10 +145,13 @@ func handleUpload(c *gin.Context) {
 	}
 
 	if err := db.DB.Create(&run).Error; err != nil {
+		action.Error(err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
 		return
 	}
+	action.RunID = &run.ID
 	if err := queue.Send(strconv.FormatUint(uint64(run.ID), 10), 0); err != nil {
+		action.Error(err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to queue run"})
 		return
 	}
@@ -157,6 +168,9 @@ func handleUpload(c *gin.Context) {
 }
 
 func handleRun(c *gin.Context) {
+	action := common_api.BeginAction(c, "studentCheck")
+	defer action.Log()
+
 	runID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid run UUID"})
@@ -179,9 +193,12 @@ func handleRun(c *gin.Context) {
 		return
 	}
 	if query.Error != nil {
+		action.Error(query.Error)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
 		return
 	}
+	action.RunID = &run.ID
+	action.StudentID = run.StudentID
 
 	for i, result := range run.CheckResults {
 		run.CheckResults[i].AttachmentBase64 = teacher_check.BytesToString(result.Attachment)
@@ -191,6 +208,9 @@ func handleRun(c *gin.Context) {
 }
 
 func handleRunStatus(c *gin.Context) {
+	action := common_api.BeginAction(c, "studentCheck")
+	defer action.Log()
+
 	runID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid run UUID"})
@@ -204,9 +224,12 @@ func handleRunStatus(c *gin.Context) {
 		return
 	}
 	if query.Error != nil {
+		action.Error(query.Error)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
 		return
 	}
+	action.RunID = &run.ID
+	action.StudentID = run.StudentID
 
 	ret := teacher_check.CGRunStatusReturn{
 		CheckTime: run.CheckTime,

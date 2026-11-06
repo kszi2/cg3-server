@@ -23,6 +23,9 @@ func Register(router *gin.RouterGroup) {
 }
 
 func handleTurnstile(c *gin.Context) {
+	action := common_api.BeginAction(c, "user")
+	defer action.Log()
+
 	siteKey := common_api.GetTurnstileSiteKey()
 
 	if siteKey == "disabled" {
