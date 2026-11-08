@@ -102,6 +102,7 @@ check-0200-compile() {
 	done < <(find "$WORKDIR" -type d -print0)
 
 	link_flags=(
+		-lm
 		-lSDL2 -lSDL3
 		-lSDL2_gfx
 		-lSDL2_image -lSDL3_image
