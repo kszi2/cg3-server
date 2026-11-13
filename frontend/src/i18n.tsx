@@ -11,6 +11,7 @@ const translations = {
 		loading: 'Loading...',
 		loginRequired: 'Please log in to access this page.',
 		checks: 'Checks',
+		howTo: 'How-to',
 		admin: 'Admin',
 		login: 'Login',
 		logout: 'Logout',
@@ -56,6 +57,10 @@ const translations = {
 		password: 'Password',
 		signIn: 'Sign In',
 		loginFailed: 'Login failed',
+		registrationTitle: 'Register',
+		register: 'Register',
+		registering: 'Registering...',
+		registrationFailed: 'Registration failed',
 		networkError: 'Network error',
 		checkDetails: 'Check details',
 		backToChecks: 'Back to checks',
@@ -116,12 +121,14 @@ const translations = {
 		notDocumented: 'This check is not documented in the current check list.',
 		pass: 'Pass',
 		fail: 'Fail',
-		skip: 'Skip'
+		skip: 'Skip',
+		loginWarning: 'Teacher login. Students can upload without registration using their Neptun code.'
 	},
 	hu: {
 		loading: 'Betöltés...',
 		loginRequired: 'A funkció használatához be kell jelentkezni.',
 		checks: 'Ellenőrzések',
+		howTo: 'Használati útmutató',
 		admin: 'Admin',
 		login: 'Bejelentkezés',
 		logout: 'Kijelentkezés',
@@ -167,6 +174,10 @@ const translations = {
 		password: 'Jelszó',
 		signIn: 'Bejelentkezés',
 		loginFailed: 'Sikertelen bejelentkezés',
+		registrationTitle: 'Regisztráció',
+		register: 'Regisztráció',
+		registering: 'Regisztráció...',
+		registrationFailed: 'Sikertelen regisztráció',
 		networkError: 'Hálózati hiba',
 		checkDetails: 'Ellenőrzés részletei',
 		backToChecks: 'Vissza az ellenőrzésekhez',
@@ -227,7 +238,8 @@ const translations = {
 		notDocumented: 'Ez az ellenőrzés nem szerepel az aktuális ellenőrzési listában.',
 		pass: 'Sikeres',
 		fail: 'Sikertelen',
-		skip: 'Kihagyva'
+		skip: 'Kihagyva',
+		loginWarning: 'Oktatói belépés. Hallgatók regisztráció nélkül, Neptun-kód alapján tudnak feltölteni.'
 	}
 } as const;
 

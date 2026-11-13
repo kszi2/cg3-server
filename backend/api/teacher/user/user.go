@@ -11,15 +11,24 @@ import (
 	"github.com/go-crypt/crypt/algorithm/argon2"
 	common_api "github.com/kszi2/cg3-server/backend/api/common"
 	"github.com/kszi2/cg3-server/backend/db"
+	"github.com/kszi2/cg3-server/backend/helper"
 	"gorm.io/gorm"
 )
 
 var hasher *argon2.Hasher
 var decoder *crypt.Decoder
+var registerToken string
 
 type UserLogin struct {
 	Username string `json:"username"`
 	Password string `json:"password"`
+}
+
+type UserRegister struct {
+	UserLogin
+
+	DisplayName string `json:"displayname"`
+	Token       string `json:"token"`
 }
 
 type UserCreate struct {
@@ -76,7 +85,10 @@ func Register(router *gin.RouterGroup) {
 	}
 	decoder = d
 
+	registerToken = helper.EnvGet("USER_REGISTER_TOKEN", "Almafa12")
+
 	router.POST("/create", handleCreate)
+	router.POST("/register", handleRegister)
 	router.POST("/login", handleLogin)
 	router.GET("/me", handleMe)
 	router.PATCH("/:id", handleModify)
@@ -115,6 +127,57 @@ func handleCreate(c *gin.Context) {
 		Username:    register.Username,
 		DisplayName: register.DisplayName,
 		Admin:       register.Admin,
+		Password:    digest.String(),
+	}
+
+	res := db.DB.Create(&user)
+	if res.Error != nil {
+		if errors.Is(res.Error, gorm.ErrDuplicatedKey) {
+			c.JSON(http.StatusConflict, gin.H{"error": "username already used"})
+			return
+		}
+
+		action.Error(res.Error)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
+		return
+	}
+
+	c.JSON(http.StatusOK, User2Return(&user))
+}
+
+func handleRegister(c *gin.Context) {
+	action := common_api.BeginAction(c, "userManagement")
+	defer action.Log()
+
+	if registerToken == "" {
+		c.JSON(http.StatusForbidden, gin.H{"error": "registration is disabled"})
+		return
+	}
+
+	var register UserRegister
+
+	err := c.ShouldBindBodyWithJSON(&register)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	if register.Token != registerToken {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid registration token"})
+		return
+	}
+
+	digest, err := hasher.Hash(register.Password)
+	if err != nil {
+		action.Error(err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
+		return
+	}
+
+	user := db.User{
+		Username:    register.Username,
+		DisplayName: register.DisplayName,
+		Admin:       false,
 		Password:    digest.String(),
 	}
 

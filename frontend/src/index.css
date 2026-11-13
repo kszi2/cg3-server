@@ -8,3 +8,58 @@ body {
   font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
   color: #1f2937;
 }
+
+.guide-content h1,
+.guide-content h2,
+.guide-content h3 {
+  font-weight: 700;
+  color: #111827;
+}
+
+.guide-content h1 {
+  margin: 0 0 1.5rem;
+  font-size: 1.875rem;
+  line-height: 2.25rem;
+}
+
+.guide-content h2 {
+  margin: 2rem 0 1rem;
+  font-size: 1.5rem;
+  line-height: 2rem;
+}
+
+.guide-content h3 {
+  margin: 1.5rem 0 0.75rem;
+  font-size: 1.25rem;
+  line-height: 1.75rem;
+}
+
+.guide-content p,
+.guide-content ul,
+.guide-content ol {
+  margin: 0.75rem 0;
+}
+
+.guide-content ul,
+.guide-content ol {
+  padding-left: 1.5rem;
+}
+
+.guide-content ul {
+  list-style-type: disc;
+}
+
+.guide-content ol {
+  list-style-type: decimal;
+}
+
+.guide-content a {
+  color: #2563eb;
+  text-decoration: underline;
+}
+
+.guide-content code {
+  border-radius: 0.25rem;
+  background-color: #f3f4f6;
+  padding: 0.125rem 0.25rem;
+}

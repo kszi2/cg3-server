@@ -206,6 +206,26 @@ Response:
 
 Invalid credentials return `401`.
 
+#### `POST /api/teacher/user/register`
+
+Register a non-admin user with the pre-generated token configured by
+`USER_REGISTER_TOKEN`. The endpoint does not require authentication.
+
+Request:
+
+```json
+{
+	"username": "student",
+	"displayname": "Student",
+	"password": "password",
+	"token": "<registration token>"
+}
+```
+
+Returns the created user without the password. An invalid token returns `401`,
+duplicate usernames return `409`, and registration returns `403` when
+`USER_REGISTER_TOKEN` is empty.
+
 #### `POST /api/teacher/user/create`
 
 Create a user. Admin authentication is required.
@@ -657,26 +677,27 @@ Response after processing:
 
 ## Environment variables
 
-| Variable                | Default            | Purpose                                                                  |
-| ----------------------- | ------------------ | ------------------------------------------------------------------------ |
-| `PROD`                  | unset              | When `true` or `1`, missing environment variables terminate the process. |
-| `GIN_MODE`              | Gin default        | Gin runtime mode.                                                        |
-| `DB_HOST`               | `localhost`        | PostgreSQL host.                                                         |
-| `DB_PORT`               | `5432`             | PostgreSQL port.                                                         |
-| `DB_USER`               | `gorm`             | PostgreSQL user.                                                         |
-| `DB_PASS`               | `gorm`             | PostgreSQL password.                                                     |
-| `DB_NAME`               | `gorm`             | PostgreSQL database name.                                                |
-| `SERVER_ADDRESS`        | `0.0.0.0:8080`     | HTTP listen address.                                                     |
-| `FRONTEND_DIR`          | `../frontend/dist` | Directory for frontend static files.                                     |
-| `JWT_SECRET`            | `Almafa12`         | JWT signing secret.                                                      |
-| `JWT_EXPIRATION`        | `1800`             | JWT lifetime in seconds.                                                 |
-| `TURNSTILE_SITE_KEY`    | `disabled`         | Public Cloudflare Turnstile site key; use `disabled` to disable it.      |
-| `TURNSTILE_SITE_SECRET` | empty              | Private Cloudflare Turnstile secret for server-side verification.        |
-| `RABBITMQ_USER`         | `rabbit`           | RabbitMQ username.                                                       |
-| `RABBITMQ_PASS`         | `rabbit`           | RabbitMQ password.                                                       |
-| `RABBITMQ_HOST`         | `localhost`        | RabbitMQ host.                                                           |
-| `RABBITMQ_PORT`         | `5672`             | RabbitMQ AMQP port.                                                      |
-| `RABBITMQ_QUEUE`        | `check`            | RabbitMQ queue name.                                                     |
+| Variable                | Default            | Purpose                                                                              |
+| ----------------------- | ------------------ | ------------------------------------------------------------------------------------ |
+| `PROD`                  | unset              | When `true` or `1`, missing environment variables terminate the process.             |
+| `GIN_MODE`              | Gin default        | Gin runtime mode.                                                                    |
+| `DB_HOST`               | `localhost`        | PostgreSQL host.                                                                     |
+| `DB_PORT`               | `5432`             | PostgreSQL port.                                                                     |
+| `DB_USER`               | `gorm`             | PostgreSQL user.                                                                     |
+| `DB_PASS`               | `gorm`             | PostgreSQL password.                                                                 |
+| `DB_NAME`               | `gorm`             | PostgreSQL database name.                                                            |
+| `SERVER_ADDRESS`        | `0.0.0.0:8080`     | HTTP listen address.                                                                 |
+| `FRONTEND_DIR`          | `../frontend/dist` | Directory for frontend static files.                                                 |
+| `JWT_SECRET`            | `Almafa12`         | JWT signing secret.                                                                  |
+| `JWT_EXPIRATION`        | `1800`             | JWT lifetime in seconds.                                                             |
+| `USER_REGISTER_TOKEN`   | `Almafa12`         | Token required by the unauthenticated self-registration endpoint; empty disables it. |
+| `TURNSTILE_SITE_KEY`    | `disabled`         | Public Cloudflare Turnstile site key; use `disabled` to disable it.                  |
+| `TURNSTILE_SITE_SECRET` | empty              | Private Cloudflare Turnstile secret for server-side verification.                    |
+| `RABBITMQ_USER`         | `rabbit`           | RabbitMQ username.                                                                   |
+| `RABBITMQ_PASS`         | `rabbit`           | RabbitMQ password.                                                                   |
+| `RABBITMQ_HOST`         | `localhost`        | RabbitMQ host.                                                                       |
+| `RABBITMQ_PORT`         | `5672`             | RabbitMQ AMQP port.                                                                  |
+| `RABBITMQ_QUEUE`        | `check`            | RabbitMQ queue name.                                                                 |
 
 ## Error responses
 

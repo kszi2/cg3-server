@@ -182,11 +182,20 @@ Each checker container is temporary and runs with no network access, a 1 GiB mem
 | `RABBITMQ_HOST`, `RABBITMQ_PORT`, `RABBITMQ_USER`, `RABBITMQ_PASS`, `RABBITMQ_QUEUE` | Backend and worker RabbitMQ connection.                                                |
 | `JWT_SECRET`, `JWT_EXPIRATION`                                                       | JWT signing and expiration.                                                            |
 | `TURNSTILE_SITE_KEY`, `TURNSTILE_SITE_SECRET`                                        | Cloudflare Turnstile configuration. Set the site key to `disabled` to disable CAPTCHA. |
+| `USER_REGISTER_TOKEN`                                                                | Pre-generated token required by the self-registration endpoint.                        |
 | `SERVER_ADDRESS`                                                                     | Backend HTTP listen address.                                                           |
 | `CG3_DOCKER_IMAGE`                                                                   | Checker image launched by the worker.                                                  |
 | `PROD`                                                                               | Makes missing environment variables fatal when set to `true` or `1`.                   |
 
 The backend runs database migrations at startup. The worker connects to the same database without running migrations.
+
+### Self-registration
+
+Users can be registered through the hidden frontend page at `/register/:token`. The
+token in the URL must match `USER_REGISTER_TOKEN`; the page asks only for a
+username, display name, and password. After successful registration, the user is
+redirected to the login page. Set `USER_REGISTER_TOKEN` to an empty value to
+disable self-registration.
 
 ## API documentation
 

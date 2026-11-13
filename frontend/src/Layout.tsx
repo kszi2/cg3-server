@@ -30,11 +30,14 @@ export default function Layout() {
 							</Link>
 						</div>
 						<div className="hidden md:flex items-center gap-4">
+							<Link to="/how-to" className="inline-flex items-center gap-2 px-3 py-2 text-gray-700 hover:text-gray-900">
+								{t('howTo')}
+							</Link>
+							<Link to="/check" className="inline-flex items-center gap-2 px-3 py-2 text-gray-700 hover:text-gray-900">
+								<span>{t('checks')}</span>
+							</Link>
 							{user ? (
 								<>
-									<Link to="/check" className="inline-flex items-center gap-2 px-3 py-2 text-gray-700 hover:text-gray-900">
-										<span>{t('checks')}</span>
-									</Link>
 									{user.admin && (
 										<Link to="/admin" className="px-3 py-2 text-gray-700 hover:text-gray-900">
 											{t('admin')}
@@ -79,15 +82,14 @@ export default function Layout() {
 					{menuOpen && (
 						<div id="mobile-navigation" className="md:hidden border-t border-gray-100 py-3">
 							<div className="flex flex-col gap-1">
+								<Link to="/how-to" onClick={closeMenu} className="rounded-md px-3 py-2 text-gray-700 hover:bg-gray-100 hover:text-gray-900">
+									{t('howTo')}
+								</Link>
+								<Link to="/check" onClick={closeMenu} className="rounded-md px-3 py-2 text-gray-700 hover:bg-gray-100 hover:text-gray-900">
+									{t('checks')}
+								</Link>
 								{user ? (
 									<>
-										<Link
-											to="/check"
-											onClick={closeMenu}
-											className="rounded-md px-3 py-2 text-gray-700 hover:bg-gray-100 hover:text-gray-900"
-										>
-											{t('checks')}
-										</Link>
 										{user.admin && (
 											<Link
 												to="/admin"

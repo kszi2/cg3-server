@@ -47,6 +47,7 @@ export default function Login() {
 	return (
 		<div className="max-w-md mx-auto bg-white p-8 rounded-lg shadow">
 			<h2 className="text-2xl font-bold text-center mb-6">{t('loginTitle')}</h2>
+			<div className="bg-yellow-50 text-yellow-600 p-3 rounded mb-4">{t('loginWarning')}</div>
 			{error && <div className="bg-red-50 text-red-600 p-3 rounded mb-4">{error}</div>}
 			<form onSubmit={handleSubmit} className="space-y-4">
 				<div>
