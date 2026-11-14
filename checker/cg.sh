@@ -159,6 +159,8 @@ check-0300-cg3() {
 	mkdir -p $CHECK_DIR
 	touch "$CHECK_DIR/run"
 
+	find "$WORKDIR" -type f -name "debugmalloc.h" -exec sh -c 'cp "$1"/debugmalloc-no-t.h "$2"' shell "$TOOLS_DIR" {} \;
+
 	find $WORKDIR -type d -printf '-O -I -O "%p" ' | xargs cg3 db clang-18 -R \
 	-O -I/usr/include/SDL2 -O -I/usr/include/SDL3 -O -I/usr/include/SDL3_image -O -I/usr/include/SDL3_ttf \
 	-O -D_REENTRANT	-O -DSDL_DISABLE_IMMINTRIN_H -O -DSDL_DISABLE_XMMINTRIN_H -O -DSDL_DISABLE_EMMINTRIN_H \
