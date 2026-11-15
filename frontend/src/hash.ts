@@ -9,7 +9,7 @@ export function isNeptunCode(value: string) {
 }
 
 export function shortValue(value: string | null | undefined) {
-	return value ? value.slice(0, 6) : value;
+	return value ? value.slice(0, 8) : value;
 }
 
 export function studentLabel(initials: string | null | undefined, neptunHash: string) {
