@@ -96,7 +96,7 @@ export default function CheckList({ title, endpoint, emptyText }: CheckListProps
 												t('unassigned')
 											)}
 										</td>
-										<td className="px-2 py-2 whitespace-nowrap">{new Date(run.createdAt).toLocaleString()}</td>
+										<td className="px-2 py-2 whitespace-nowrap">{new Date(run.createdAt).toLocaleString(language)}</td>
 										<td className="px-2 py-2 whitespace-nowrap">{run.checkedAt ? new Date(run.checkedAt).toLocaleString(language) : t('pending')}</td>
 									</tr>
 								))}

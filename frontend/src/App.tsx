@@ -26,8 +26,8 @@ function RequireAuth({ children }: { children: ReactNode }) {
 function App() {
 	return (
 		<LanguageProvider>
-			<AuthProvider>
-				<Router>
+			<Router>
+				<AuthProvider>
 					<Routes>
 					<Route path="/" element={<Layout />}>
 						<Route index element={<HowTo />} />
@@ -70,8 +70,8 @@ function App() {
 						<Route path="check/:id" element={<CheckDetail />} />
 					</Route>
 					</Routes>
-				</Router>
-			</AuthProvider>
+				</AuthProvider>
+			</Router>
 		</LanguageProvider>
 	);
 }

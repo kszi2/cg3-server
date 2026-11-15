@@ -1,6 +1,8 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import type { ReactNode } from 'react';
-import { clearAuthToken, setAuthToken, fetchWithAuth } from './api';
+import { useNavigate } from 'react-router-dom';
+import { jwtDecode, InvalidTokenError } from 'jwt-decode';
+import { clearAuthToken, getAuthToken, setAuthToken, fetchWithAuth } from './api';
 
 export interface User {
 	username: string;
@@ -18,21 +20,51 @@ interface AuthContextType {
 	checkAuth: () => Promise<void>;
 }
 
+interface JwtPayload {
+	exp?: number;
+}
+
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
 	const [user, setUser] = useState<User | null>(null);
 	const [loading, setLoading] = useState(true);
+	const navigate = useNavigate();
+
+	const redirectToLogin = () => {
+		clearAuthToken();
+		setUser(null);
+		setLoading(false);
+		navigate('/login', { replace: true });
+	};
 
 	const checkAuth = async () => {
+		const token = getAuthToken();
+		if (!token) {
+			setUser(null);
+			setLoading(false);
+			return;
+		}
+		try {
+			const payload = jwtDecode<JwtPayload>(token);
+			if (typeof payload.exp === 'number' && payload.exp <= Math.floor(Date.now() / 1000)) {
+				redirectToLogin();
+				return;
+			}
+		} catch (error) {
+			if (!(error instanceof InvalidTokenError)) {
+				redirectToLogin();
+				return;
+			}
+		}
+
 		try {
 			const res = await fetchWithAuth('/api/teacher/user/me');
 			if (res.ok) {
 				const userData = await res.json();
 				setUser(userData);
 			} else {
-				setUser(null);
-				clearAuthToken();
+				redirectToLogin();
 			}
 		} catch (e) {
 			console.error(e);
