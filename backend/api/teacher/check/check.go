@@ -284,6 +284,7 @@ func handleStudentRuns(c *gin.Context) {
 	var runs []CGRunReturnSum
 	query := db.DB.
 		Model(&db.CGRun{}).
+		Order("created_at desc").
 		Preload("Student", func(tx *gorm.DB) *gorm.DB {
 			return tx.Model(&db.Student{})
 		}).
@@ -313,6 +314,7 @@ func handleAll(c *gin.Context) {
 	var runs []CGRunReturnSum
 	query := db.DB.
 		Model(&db.CGRun{}).
+		Order("created_at desc").
 		Preload("Student", func(tx *gorm.DB) *gorm.DB {
 			return tx.Model(&db.Student{})
 		}).
@@ -341,6 +343,7 @@ func handleMy(c *gin.Context) {
 	var runs []CGRunReturnSum
 	query := db.DB.
 		Model(&db.CGRun{}).
+		Order("created_at desc").
 		Preload("Student", func(tx *gorm.DB) *gorm.DB {
 			return tx.Model(&db.Student{})
 		}).
