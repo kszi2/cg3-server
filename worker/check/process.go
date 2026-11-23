@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"regexp"
 	"slices"
 	"strings"
 
@@ -125,6 +126,10 @@ func (check *CheckProcess) AddFile(reader io.Reader, name string) error {
 				check.results[cg3Check] = res2
 			}
 		}
+		if filename == "error" {
+			regex := regexp.MustCompile(`\[\d+/\d+\] Processing file .*\n`)
+			res.err = regex.ReplaceAllString(res.err, "")
+		}
 		check.results["cg3-complete"] = res
 
 	case "0400-cg":
@@ -203,6 +208,7 @@ func fillResult(fname string, reader io.Reader, result *checkResult) bool {
 		return true
 	case "run":
 		result.run = true
+		return true
 	}
 
 	return false
